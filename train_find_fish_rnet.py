@@ -43,9 +43,9 @@ total_len = x_data.shape[0]/(scan_wnd_size[0] * scan_wnd_size[1])
 
 for i in range(total_len):
     if i < fish_len:
-        y_data_list.append([1, 1]) ## [0, 1] denotes has fish
+        y_data_list.append([0, 1]) ## denotes has fish
     else:
-        y_data_list.append([0, 0]) ## [1, 0] denotes no fish
+        y_data_list.append([1, 0]) ## denotes no fish
 
 x_data = x_data.reshape(total_len, scan_wnd_size[0] * scan_wnd_size[1])
 y_data = numpy.array(y_data_list)
@@ -89,8 +89,7 @@ sess = tf.InteractiveSession()
 tf.global_variables_initializer().run()
 
 cross_entropy = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv) +
-    tf.nn.softmax_cross_entropy_with_logits(labels=1-y_, logits=1-y_conv))
+    tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
 
 mse = tf.reduce_mean(tf.square(y_-y_conv))
 

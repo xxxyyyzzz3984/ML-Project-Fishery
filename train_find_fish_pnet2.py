@@ -33,13 +33,11 @@ def max_pool_3x3(x):
 # ##############
 scan_wnd_size = [12, 12]
 y_data_list = []
-x_data = numpy.load('../array train dataset/backup small nofish 12x12'
-                    '/fish_imagedata_%dx%d.npy' % (scan_wnd_size[0],
+x_data = numpy.load('../array train dataset/fish_imagedata_%dx%d.npy' % (scan_wnd_size[0],
                                                                          scan_wnd_size[1]))
 fish_len = x_data.shape[0]
 
-x_data = numpy.append(x_data, numpy.load('../array train dataset/backup small nofish 12x12/'
-                                         'nofish_imagedata_%dx%d.npy' %
+x_data = numpy.append(x_data, numpy.load('../array train dataset/nofish_imagedata_%dx%d.npy' %
                                          (scan_wnd_size[0], scan_wnd_size[1])))
 
 total_len = x_data.shape[0]/(scan_wnd_size[0] * scan_wnd_size[1] * 3)
@@ -56,17 +54,17 @@ y_data = numpy.array(y_data_list)
 y_data = y_data.reshape(len(y_data), 2)
 
 ####shuffle
-for i in range(x_data.shape[0]/2):
-    if i % 2 == 0:
-        j = x_data.shape[0]
-
-        x_tmp = copy.copy(x_data[i])
-        x_data[i] = copy.copy(x_data[j-i-1])
-        x_data[j-i-1] = x_tmp
-
-        y_tmp = copy.copy(y_data[i])
-        y_data[i] = copy.copy(y_data[j - i - 1])
-        y_data[j - i - 1] = y_tmp
+# for i in range(x_data.shape[0]/2):
+#     if i % 2 == 0:
+#         j = x_data.shape[0]
+#
+#         x_tmp = copy.copy(x_data[i])
+#         x_data[i] = copy.copy(x_data[j-i-1])
+#         x_data[j-i-1] = x_tmp
+#
+#         y_tmp = copy.copy(y_data[i])
+#         y_data[i] = copy.copy(y_data[j - i - 1])
+#         y_data[j - i - 1] = y_tmp
 #########
 
 x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
@@ -74,7 +72,7 @@ y_ = tf.placeholder(tf.float32, [None, 2])
 
 x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 3], name='image_pnet')
 
-W_conv1 = weight_variable([5, 5, 3, 10], name='wconv1_pnet')
+W_conv1 = weight_variable([7, 7, 3, 10], name='wconv1_pnet')
 b_conv1 = bias_variable([10], name='bconv1_pnet')
 h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 h_pool1 = max_pool_2x2(h_conv1)  ## one layer 2x2 max pooling
@@ -139,8 +137,8 @@ train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
 #
-saver.restore(sess, save_models_dir + 'pnet_model1_incomplete/pnet_train.ckpt')
-print("Model restored.")
+# saver.restore(sess, save_models_dir + 'pnet_train.ckpt')
+# print("Model restored.")
 
 step = 0
 while True:
@@ -151,12 +149,12 @@ while True:
     print e
     if train_accuracy > 0.99:
         print 'Break the training loop...'
-        save_path = saver.save(sess, save_path=save_models_dir + 'pnet_model1_incomplete/pnet_train.ckpt')
+        save_path = saver.save(sess, save_path=save_models_dir + 'pnet_train.ckpt')
         break
 
     if step % 200 == 0:
         print 'saving the model'
-        save_path = saver.save(sess, save_path=save_models_dir + 'pnet_model1_incomplete/pnet_train.ckpt')
+        save_path = saver.save(sess, save_path=save_models_dir + 'pnet_train.ckpt')
 
     step += 1
 

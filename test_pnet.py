@@ -1,28 +1,8 @@
-import ImageFilter
 
 import tensorflow as tf
 import numpy
-import Image
-from resizeimage import resizeimage
 
-import copy
-from PIL import ImageFilter, Image
-import pickle
-
-
-import numpy
-from resizeimage import resizeimage
-from os import listdir
-from os.path import isfile, join
-from skimage.morphology import watershed
-from skimage.filters import sobel
-from skimage.feature import hog
-from skimage import data, color, exposure, filters, io, transform
-import matplotlib.pyplot as plt
-from skimage.feature import canny
-from scipy import ndimage as ndi
-
-from skimage.segmentation import random_walker
+from skimage import io, transform, filters
 
 
 '''Inspired by CVPR 16 paper, Joint Face Detection and Alignment using
@@ -80,17 +60,12 @@ b_fc1 = bias_variable([1024], name='bfc1_pnet')
 h_pool2_flat = tf.reshape(h_conv3, [-1, 6 * 6 * 32])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
-keep_prob = tf.placeholder(tf.float32)
-h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob, name='hfc1drop_pnet')
 
 W_fc2 = weight_variable([1024, 2], name='wfc2_pnet')
 b_fc2 = bias_variable([2], name='bfc2_pnet')
 
-y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
 
-
-sess = tf.InteractiveSession()
-tf.global_variables_initializer().run()
 
 cross_entropy = tf.reduce_mean(
     tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
@@ -100,27 +75,31 @@ mse = tf.reduce_mean(tf.square(y_-y_conv))
 
 train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 
-sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
+with tf.Session() as sess:
+    saver.restore(sess, save_models_dir + 'pnet_model1_incomplete/pnet_train.ckpt')
+    print("Model restored.")
+    image_data = io.imread('../small test/6.jpg')
 
-saver.restore(sess, save_models_dir + 'pnet_train.ckpt')
-print("Model restored.")
+    # edges_data = canny(image_data)
 
-image_data = io.imread('../small test/2.png')
+    # image_data = filters.gaussian(image_data, 2)
 
+    image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
 
-# edges_data = canny(image_data)
+    image_data = numpy.array(image_data, dtype=float)
 
-image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
+    image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
 
-image_data = numpy.array(image_data, dtype=float)
+    # count = 0
+    # for i in range(100):
+    #     y_predict = y_conv.eval({x: image_data}, sess)
+    #     if y_predict[0][0] > y_predict[0][1]:
+    #         count += 1
 
-image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
+    y_predict = y_conv.eval({x: image_data}, sess)
 
-
-y_predict = y_conv.eval({x: image_data, keep_prob: 0.5}, sess)
-print y_predict
-
+    print y_predict
 
 # ## PNET Part Finishes
 # ##############

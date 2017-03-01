@@ -29,7 +29,7 @@ no_fish_dir = 'NoF/'
 
 # get fish data part
 x_data_list = []
-scan_wnd_size = [12, 12]
+scan_wnd_size = [48, 48]
 for fish_dir in fish_dirs:
     folder_path = '../cropped train dataset/' + fish_dir + '/'
     fish_pics = [f for f in listdir(folder_path) if isfile(join(folder_path, f))]
@@ -44,7 +44,7 @@ for fish_dir in fish_dirs:
 
         image_data = numpy.array(image_data, dtype=float)
 
-        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1],3)
+        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
 
         x_data_list.append(image_data)
 
@@ -58,7 +58,7 @@ numpy.save(array_save_dir+'fish_imagedata_%dx%d.npy' % (scan_wnd_size[0], scan_w
 
 # no fish part
 x_data_list = []
-scan_wnd_size = [12, 12]
+scan_wnd_size = [48, 48]
 no_patch_eachpic = 10
 nofish_pics = [f for f in listdir(training_fish_dir+no_fish_dir)
                if isfile(join(training_fish_dir+no_fish_dir, f))]
@@ -97,7 +97,7 @@ print x_data.shape
 numpy.save(array_save_dir+'nofish_imagedata_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
 
 
-with open(array_save_dir + 'nofish_hog_%dx%d.pkl'%(scan_wnd_size[0], scan_wnd_size[1]), 'wb') as fp:
-    pickle.dump(x_data_list, fp)
+# with open(array_save_dir + 'nofish_hog_%dx%d.pkl'%(scan_wnd_size[0], scan_wnd_size[1]), 'wb') as fp:
+#     pickle.dump(x_data_list, fp)
 
 

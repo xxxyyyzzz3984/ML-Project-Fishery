@@ -1,9 +1,9 @@
-import tensorflow as tf
 import numpy
 import copy
 
-'''Inspired by CVPR 16 paper, Joint Face Detection and Alignment using
-Multi-task Cascaded Convolutional Networks'''
+import tensorflow as tf
+
+scan_wnd_size = [48, 48]
 
 save_models_dir = '../saved models/'
 
@@ -27,30 +27,25 @@ def max_pool_3x3(x):
   return tf.nn.max_pool(x, ksize=[1, 3, 3, 1],
                         strides=[1, 3, 3, 1], padding='SAME')
 
-
-# ##############
-# ## ONET Part
-# ##############
-scan_wnd_size = [48, 48]
+####load data ###################
 y_data_list = []
-x_data = numpy.load('../array train dataset/fish_imagedata_noisy_%dx%d.npy' % (scan_wnd_size[0],
+x_data = numpy.load('../array train dataset/fish_wholeimg_%dx%d.npy' % (scan_wnd_size[0],
                                                                          scan_wnd_size[1]))
 fish_len = x_data.shape[0]
 
-x_data = numpy.append(x_data, numpy.load('../array train dataset/nofish_imagedata_noisy_%dx%d.npy' %
+x_data = numpy.append(x_data, numpy.load('../array train dataset/nofish_wholeimg_%dx%d.npy' %
                                          (scan_wnd_size[0], scan_wnd_size[1])))
 
-total_len = x_data.shape[0]/(scan_wnd_size[0] * scan_wnd_size[1])
+total_len = x_data.shape[0]/(scan_wnd_size[0] * scan_wnd_size[1] * 3)
 
-for i in range(total_len):
-    if i < fish_len:
-        y_data_list.append([1, 0]) ## [0, 1] denotes has fish
-    else:
-        y_data_list.append([0, 1]) ## [1, 0] denotes no fish
+y_data = numpy.load('../array train dataset/fishlabels_wholeimg_%dx%d.npy' %
+                                         (scan_wnd_size[0], scan_wnd_size[1]))
 
-x_data = x_data.reshape(total_len, scan_wnd_size[0] * scan_wnd_size[1])
-y_data = numpy.array(y_data_list)
-y_data = y_data.reshape(len(y_data), 2)
+y_data = numpy.append(y_data, numpy.load('../array train dataset/nofishlabels_wholeimg_%dx%d.npy' %
+                                         (scan_wnd_size[0], scan_wnd_size[1])))
+
+x_data = x_data.reshape(total_len, scan_wnd_size[0] * scan_wnd_size[1], 3)
+y_data = y_data.reshape(total_len, 2)
 
 ####shuffle
 for i in range(x_data.shape[0]/2):
@@ -66,12 +61,14 @@ for i in range(x_data.shape[0]/2):
         y_data[j - i - 1] = copy.copy(y_tmp)
 #########
 
-x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1]])
+#########################
+
+x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
 y_ = tf.placeholder(tf.float32, [None, 2])
 
-x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 1], name='image_pnet')
+x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 3], name='image_pnet')
 
-W_conv1 = weight_variable([3, 3, 1, 32], name='wconv1_pnet')
+W_conv1 = weight_variable([3, 3, 3, 32], name='wconv1_pnet')
 b_conv1 = bias_variable([32], name='bconv1_pnet')
 h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 h_pool1 = max_pool_3x3(h_conv1)  ## one layer 3x3 max pooling
@@ -106,22 +103,23 @@ b_fc2 = bias_variable([2], name='bfc2_pnet')
 
 y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
 
-
 sess = tf.InteractiveSession()
 tf.global_variables_initializer().run()
 
 cross_entropy = tf.reduce_mean(
-     tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv) + 
+     tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv) +
     tf.nn.softmax_cross_entropy_with_logits(labels=1-y_, logits=1-y_conv))
 
 
 mse = tf.reduce_mean(tf.square(y_-y_conv))
 
+loss = mse + cross_entropy
+
 
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
+train_step = tf.train.AdamOptimizer(1e-6).minimize(loss)
 
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
@@ -157,12 +155,12 @@ while True:
             max_acc = 0.0
             total_acc = 0.0
 
-    x_data_batch = x_data[batch_i*50:batch_i*50+50, 0:scan_wnd_size[0] * scan_wnd_size[1]]
+    x_data_batch = x_data[batch_i*50:batch_i*50+50, 0:scan_wnd_size[0] * scan_wnd_size[1], 0:3]
     y_data_batch = y_data[batch_i*50:batch_i*50+50, 0:2]
 
     train_step.run({y_: y_data_batch, x: x_data_batch, keep_prob: 0.5}, sess)
 
-    e = sess.run(cross_entropy, feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
+    e = sess.run(loss, feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
     train_accuracy = accuracy.eval(feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
 
     if min_acc > train_accuracy:
@@ -181,8 +179,3 @@ while True:
 
     batch_i += 1
     step += 1
-
-
-# ##############
-# ## ONET Part Finishes
-# ##############

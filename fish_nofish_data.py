@@ -35,22 +35,22 @@ for fish_dir in fish_dirs:
     fish_pics = [f for f in listdir(folder_path) if isfile(join(folder_path, f))]
     for fish_pic_name in fish_pics:
         image_data = io.imread(folder_path + fish_pic_name)
-        # image_data = color.rgb2grey(image_data)
+        image_data = color.rgb2grey(image_data)
 
-        # edges_data = canny(image_data)
-        # image_data = filters.gaussian(image_data, 2)
+        edges_data = canny(image_data)
+        image_data = filters.gaussian(edges_data, 2)
 
         image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
 
         image_data = numpy.array(image_data, dtype=float)
 
-        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
+        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1])
 
         x_data_list.append(image_data)
 
 x_data = numpy.array(x_data_list)
 print x_data.shape
-numpy.save(array_save_dir+'fish_imagedata_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
+numpy.save(array_save_dir+'fish_imagedata_noisy_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
 
 
 # with open(array_save_dir + 'fish_hog_%dx%d.pkl'%(scan_wnd_size[0], scan_wnd_size[1]), 'wb') as fp:
@@ -66,25 +66,23 @@ nofish_pics = [f for f in listdir(training_fish_dir+no_fish_dir)
 for nofish_pic_name in nofish_pics:
     image = io.imread(training_fish_dir+no_fish_dir+nofish_pic_name)
 
+    image_grey = color.rgb2grey(image)
+    edges_data = canny(image_grey)
+    image_grey = filters.gaussian(edges_data, 2)
+
     for i in range(no_patch_eachpic):
         while True:
             try:
                 y = random.randint(0, 720)
                 x = random.randint(0, 1280)
 
-                # image_data = color.rgb2grey(image)
-                image_data = image[x:x+400, y:y+400, 0:3]
-
-                # image_data = color.rgb2grey(image_data)
-
-                # edges_data = canny(image_data)
-                # image_data = filters.gaussian(image_data, 2)
+                image_data = copy.copy(image_grey[x:x+200, y:y+200])
 
                 image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
 
                 image_data = numpy.array(image_data, dtype=float)
 
-                image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
+                image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1])
 
                 x_data_list.append(image_data)
 
@@ -94,7 +92,7 @@ for nofish_pic_name in nofish_pics:
 
 x_data = numpy.array(x_data_list)
 print x_data.shape
-numpy.save(array_save_dir+'nofish_imagedata_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
+numpy.save(array_save_dir+'nofish_imagedata_noisy_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
 
 
 # with open(array_save_dir + 'nofish_hog_%dx%d.pkl'%(scan_wnd_size[0], scan_wnd_size[1]), 'wb') as fp:

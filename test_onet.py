@@ -41,12 +41,12 @@ def max_pool_3x3(x):
 # ##############
 scan_wnd_size = [48, 48]
 
-x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
+x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1]])
 y_ = tf.placeholder(tf.float32, [None, 2])
 
-x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 3], name='image_pnet')
+x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 1], name='image_pnet')
 
-W_conv1 = weight_variable([3, 3, 3, 32], name='wconv1_pnet')
+W_conv1 = weight_variable([3, 3, 1, 32], name='wconv1_pnet')
 b_conv1 = bias_variable([32], name='bconv1_pnet')
 h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 h_pool1 = max_pool_3x3(h_conv1)  ## one layer 3x3 max pooling
@@ -72,14 +72,18 @@ b_fc1 = bias_variable([256], name='bfc1_pnet')
 h_pool2_flat = tf.reshape(h_conv4, [-1, 3 * 3 * 128])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
-
 W_fc2 = weight_variable([256, 2], name='wfc2_pnet')
 b_fc2 = bias_variable([2], name='bfc2_pnet')
 
 
 y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
-test_pics = [f for f in listdir('../test dataset/')
-               if isfile(join('../test dataset/', f))]
+
+
+
+test_pics_folder = '../test dataset/'
+
+test_pics = [f for f in listdir(test_pics_folder)
+               if isfile(join(test_pics_folder, f))]
 
 
 saver = tf.train.Saver()
@@ -88,49 +92,58 @@ with tf.Session() as sess:
     print("Model restored.")
 
     for test_pic_name in test_pics:
-        test_pic_path = '../test dataset/' + test_pic_name
-
+        test_pic_path = test_pics_folder + test_pic_name
+    #
         image = io.imread(test_pic_path)
-        image_data = transform.resize(image, numpy.array(scan_wnd_size))
-        image_data = numpy.array(image_data, dtype=float)
-        image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
-        y_predict = y_conv.eval({x: image_data}, sess)
 
-        print y_predict
+        image = transform.rescale(image, 0.6)
+    #     image_data = transform.resize(image, numpy.array(scan_wnd_size))
+    #     image_data = numpy.array(image_data, dtype=float)
+    #     image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
+    #     y_predict = y_conv.eval({x: image_data}, sess)
+    #
+    #     plt.imshow(image)
+    #     ax = plt.gca()
+    #     rect = mpatches.Rectangle((y_predict[0][0], y_predict[0][1]),
+    #                               y_predict[0][2], y_predict[0][3],
+    #                               fill=False, edgecolor='red', linewidth=2)
+    #
+    #     ax.add_patch(rect)
+    #     plt.show()
 
-        # search_stride = 50
-        #
-        # i_w = 200
-        # j_w = 200
-        #
-        # i_total = image.shape[0] / search_stride
-        # j_total = image.shape[1] / search_stride
-        #
-        # plt.imshow(image)
-        # ax = plt.gca()
-        #
-        # image_grey = color.rgb2grey(image)
-        # edges_data = canny(image_grey)
-        # image_grey = filters.gaussian(edges_data, 2)
-        #
-        # for i in range(i_total):
-        #     for j in range(j_total):
-        #
-        #         image_data = copy.copy(image_grey[i * search_stride:i * search_stride + i_w, j * search_stride:j * search_stride + j_w])
-        #
-        #
-        #         image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
-        #         image_data = numpy.array(image_data, dtype=float)
-        #         image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1])
-        #         y_predict = y_conv.eval({x: image_data}, sess)
-        #
-        #         if y_predict[0][0] > y_predict[0][1]:
-        #             rect = mpatches.Rectangle((j * search_stride, i * search_stride), j_w, i_w,
-        #                                       fill=False, edgecolor='red', linewidth=2)
-        #
-        #             ax.add_patch(rect)
-        #
-        # plt.show()
+
+
+        search_stride = 20
+
+        i_w = 60
+        j_w = 60
+
+        i_total = image.shape[0] / search_stride
+        j_total = image.shape[1] / search_stride
+
+        plt.imshow(image)
+        ax = plt.gca()
+
+        image_grey = color.rgb2grey(image)
+
+        for i in range(i_total):
+            for j in range(j_total):
+
+                image_data = copy.copy(image_grey[i * search_stride:i * search_stride + i_w, j * search_stride:j * search_stride + j_w])
+
+                image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
+                image_data = numpy.array(image_data, dtype=float)
+                image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1])
+                y_predict = y_conv.eval({x: image_data}, sess)
+
+                if y_predict[0][0] > 1.2:
+                    print y_predict
+                    rect = mpatches.Rectangle((j * search_stride, i * search_stride), j_w, i_w,
+                                              fill=False, edgecolor='red', linewidth=2)
+
+                    ax.add_patch(rect)
+
+        plt.show()
 
 
 

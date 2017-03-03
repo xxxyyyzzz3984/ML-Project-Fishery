@@ -3,7 +3,7 @@ import copy
 from PIL import ImageFilter, Image
 import pickle
 
-
+import cv2
 import numpy
 from resizeimage import resizeimage
 from os import listdir
@@ -28,29 +28,29 @@ no_fish_dir = 'NoF/'
 
 
 # get fish data part
-x_data_list = []
-scan_wnd_size = [48, 48]
-for fish_dir in fish_dirs:
-    folder_path = '../cropped train dataset/' + fish_dir + '/'
-    fish_pics = [f for f in listdir(folder_path) if isfile(join(folder_path, f))]
-    for fish_pic_name in fish_pics:
-        image_data = io.imread(folder_path + fish_pic_name)
-        image_data = color.rgb2grey(image_data)
-
-        edges_data = canny(image_data)
-        image_data = filters.gaussian(edges_data, 2)
-
-        image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
-
-        image_data = numpy.array(image_data, dtype=float)
-
-        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1])
-
-        x_data_list.append(image_data)
-
-x_data = numpy.array(x_data_list)
-print x_data.shape
-numpy.save(array_save_dir+'fish_imagedata_noisy_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
+# x_data_list = []
+# scan_wnd_size = [48, 48]
+# for fish_dir in fish_dirs:
+#     folder_path = '../cropped train dataset/' + fish_dir + '/'
+#     fish_pics = [f for f in listdir(folder_path) if isfile(join(folder_path, f))]
+#     for fish_pic_name in fish_pics:
+#         image_data = io.imread(folder_path + fish_pic_name)
+#         image_data = color.rgb2grey(image_data)
+#
+#         # edges_data = canny(image_data)
+#         # image_data = filters.gaussian(edges_data, 2)
+#
+#         image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
+#
+#         image_data = numpy.array(image_data, dtype=float)
+#
+#         image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1])
+#
+#         x_data_list.append(image_data)
+#
+# x_data = numpy.array(x_data_list)
+# print x_data.shape
+# numpy.save(array_save_dir+'fish_imagedata_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
 
 
 # with open(array_save_dir + 'fish_hog_%dx%d.pkl'%(scan_wnd_size[0], scan_wnd_size[1]), 'wb') as fp:
@@ -59,7 +59,7 @@ numpy.save(array_save_dir+'fish_imagedata_noisy_%dx%d.npy' % (scan_wnd_size[0], 
 # no fish part
 x_data_list = []
 scan_wnd_size = [48, 48]
-no_patch_eachpic = 10
+no_patch_eachpic = 20
 nofish_pics = [f for f in listdir(training_fish_dir+no_fish_dir)
                if isfile(join(training_fish_dir+no_fish_dir, f))]
 
@@ -67,8 +67,8 @@ for nofish_pic_name in nofish_pics:
     image = io.imread(training_fish_dir+no_fish_dir+nofish_pic_name)
 
     image_grey = color.rgb2grey(image)
-    edges_data = canny(image_grey)
-    image_grey = filters.gaussian(edges_data, 2)
+    # edges_data = canny(image_grey)
+    # image_grey = filters.gaussian(edges_data, 2)
 
     for i in range(no_patch_eachpic):
         while True:
@@ -76,7 +76,7 @@ for nofish_pic_name in nofish_pics:
                 y = random.randint(0, 720)
                 x = random.randint(0, 1280)
 
-                image_data = copy.copy(image_grey[x:x+200, y:y+200])
+                image_data = copy.copy(image_grey[x:x+300, y:y+300])
 
                 image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
 
@@ -89,10 +89,10 @@ for nofish_pic_name in nofish_pics:
                 break
             except:
                 pass
-
+#
 x_data = numpy.array(x_data_list)
 print x_data.shape
-numpy.save(array_save_dir+'nofish_imagedata_noisy_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
+numpy.save(array_save_dir+'nofish_imagedata_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
 
 
 # with open(array_save_dir + 'nofish_hog_%dx%d.pkl'%(scan_wnd_size[0], scan_wnd_size[1]), 'wb') as fp:

@@ -7,6 +7,9 @@ import pickle
 import matplotlib.patches as mpatches
 
 
+import cv2
+
+
 
 import numpy
 from resizeimage import resizeimage
@@ -15,7 +18,7 @@ from os.path import isfile, join
 from skimage.morphology import watershed
 from skimage.filters import sobel
 from skimage.feature import hog
-from skimage import data, color, exposure, filters, io, transform
+from skimage import data, color, exposure, filters, io, transform, segmentation
 import matplotlib.pyplot as plt
 from skimage.feature import canny
 from scipy import ndimage as ndi
@@ -35,9 +38,11 @@ no_fish_dir = 'NoF/'
 js_filenames = ['ALB.json', 'BET.json', 'DOL.json', 'LAG.json', 'OTHER.json', 'SHARK.json', 'YFT.json']
 # js_filenames = ['ALB.json']
 
-scan_wnd_size = [48, 48]
+scan_wnd_size = [256, 256]
 x_data_list = []
 y_data_list = []
+
+iteration = 0
 
 for js_file in js_filenames:
     js_f = open(training_parsing_json_dir + js_file, 'r')
@@ -54,13 +59,25 @@ for js_file in js_filenames:
         fish_info_list = each_fish_data_js['annotations']
         # im = Image.open(training_fish_dir + each_fish_data_js['filename'])
         image_data = io.imread(training_fish_dir + each_fish_data_js['filename'])
+        image_data = color.rgb2grey(image_data)
+
+        # image_data = filters.canny(image_data)
+        # image_data = filters.gaussian(image_data, 4)
+
+        # image_data = filters.prewitt(image_data)
+
+
+        # cv2.imshow('test', image_data)
+        # cv2.waitKey()
+        # image_data = canny(image_data)
         image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
         image_data = numpy.array(image_data, dtype=float)
-        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
+        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1])
         min_x = 2000
         min_y = 2000
         max_h = 0
         max_w = 0
+
         for fish_info_js in fish_info_list:
             x = fish_info_js['x']
             y = fish_info_js['y']
@@ -79,6 +96,7 @@ for js_file in js_filenames:
             if max_w < x + width:
                 max_w = x + width
 
+
         # plt.imshow(io.imread(training_fish_dir + each_fish_data_js['filename']))
         # ax = plt.gca()
         # rect = mpatches.Rectangle((min_x, min_y),
@@ -88,19 +106,40 @@ for js_file in js_filenames:
         # ax.add_patch(rect)
         # plt.show()
 
-
         y_data_list.append(numpy.array([min_x, min_y, max_w-min_x, max_h-min_y]))
+        x_data_list.append(copy.copy(image_data))
 
-        x_data_list.append(image_data)
+        iteration += 1
 
-# x_data = numpy.array(x_data_list)
-# numpy.save('../array train dataset/fish_wholeimg_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)
-#
-# print x_data.shape
-# y_data = numpy.array(y_data_list)
-# numpy.save('../array train dataset/fishlabels_wholeimg_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), y_data)
-#
-# print y_data.shape
+        if iteration % 50 == 0:
+            x_data = numpy.array(x_data_list)
+            numpy.save('../array train dataset/big_pic_blocks/it%d_image_%dx%d.npy' % (iteration/50,
+                                scan_wnd_size[0], scan_wnd_size[1]), x_data)
+
+            print x_data.shape
+            y_data = numpy.array(y_data_list)
+            numpy.save('../array train dataset/big_pic_blocks/it%d_labels_%dx%d.npy' % (iteration/50,
+                                    scan_wnd_size[0], scan_wnd_size[1]), y_data)
+
+            print y_data.shape
+
+            x_data_list = []
+            y_data_list = []
+
+
+
+
+
+x_data = numpy.array(x_data_list)
+numpy.save('../array train dataset/big_pic_blocks/it%d_image_%dx%d.npy' % ((iteration/50)+1,
+                    scan_wnd_size[0], scan_wnd_size[1]), x_data)
+
+print x_data.shape
+y_data = numpy.array(y_data_list)
+numpy.save('../array train dataset/big_pic_blocks/it%d_labels_%dx%d.npy' % ((iteration/50)+1,
+                        scan_wnd_size[0], scan_wnd_size[1]), y_data)
+
+print y_data.shape
 
 # x_data_list = []
 # scan_wnd_size = [48, 48]

@@ -38,7 +38,7 @@ no_fish_dir = 'NoF/'
 js_filenames = ['ALB.json', 'BET.json', 'DOL.json', 'LAG.json', 'OTHER.json', 'SHARK.json', 'YFT.json']
 # js_filenames = ['ALB.json']
 
-scan_wnd_size = [256, 256]
+scan_wnd_size = [48, 48]
 x_data_list = []
 y_data_list = []
 
@@ -59,7 +59,7 @@ for js_file in js_filenames:
         fish_info_list = each_fish_data_js['annotations']
         # im = Image.open(training_fish_dir + each_fish_data_js['filename'])
         image_data = io.imread(training_fish_dir + each_fish_data_js['filename'])
-        image_data = color.rgb2grey(image_data)
+        # image_data = color.rgb2grey(image_data)
 
         # image_data = filters.canny(image_data)
         # image_data = filters.gaussian(image_data, 4)
@@ -70,13 +70,14 @@ for js_file in js_filenames:
         # cv2.imshow('test', image_data)
         # cv2.waitKey()
         # image_data = canny(image_data)
+        ori_size = copy.copy(image_data.shape)
         image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
         image_data = numpy.array(image_data, dtype=float)
-        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1])
-        min_x = 2000
-        min_y = 2000
-        max_h = 0
-        max_w = 0
+        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
+        # min_x = 2000
+        # min_y = 2000
+        # max_h = 0
+        # max_w = 0
 
         for fish_info_js in fish_info_list:
             x = fish_info_js['x']
@@ -84,17 +85,17 @@ for js_file in js_filenames:
             width = fish_info_js['width']
             height = fish_info_js['height']
 
-            if min_x > x:
-                min_x = x
-
-            if min_y > y:
-                min_y = y
-
-            if max_h < y + height:
-                max_h = y + height
-
-            if max_w < x + width:
-                max_w = x + width
+            # if min_x > x:
+            #     min_x = x
+            #
+            # if min_y > y:
+            #     min_y = y
+            #
+            # if max_h < y + height:
+            #     max_h = y + height
+            #
+            # if max_w < x + width:
+            #     max_w = x + width
 
 
         # plt.imshow(io.imread(training_fish_dir + each_fish_data_js['filename']))
@@ -106,19 +107,29 @@ for js_file in js_filenames:
         # ax.add_patch(rect)
         # plt.show()
 
-        y_data_list.append(numpy.array([min_x, min_y, max_w-min_x, max_h-min_y]))
+        # w = max_w-min_x
+        # h = max_h-min_y
+
+        x = float((x * scan_wnd_size[1]) / ori_size[1])
+        y = float((y * scan_wnd_size[0]) / ori_size[0])
+
+        w = float((width * scan_wnd_size[1]) / ori_size[1])
+        h = float((height * scan_wnd_size[0]) / ori_size[0])
+
+        y_data_list.append(numpy.array([x, y, w, h]))
         x_data_list.append(copy.copy(image_data))
+
 
         iteration += 1
 
         if iteration % 50 == 0:
             x_data = numpy.array(x_data_list)
-            numpy.save('../array train dataset/big_pic_blocks/it%d_image_%dx%d.npy' % (iteration/50,
+            numpy.save(array_save_dir + 'big_pic_blocks/it%d_image_%dx%d.npy' % (iteration/50,
                                 scan_wnd_size[0], scan_wnd_size[1]), x_data)
 
             print x_data.shape
             y_data = numpy.array(y_data_list)
-            numpy.save('../array train dataset/big_pic_blocks/it%d_labels_%dx%d.npy' % (iteration/50,
+            numpy.save(array_save_dir + 'big_pic_blocks/it%d_labels_%dx%d.npy' % (iteration/50,
                                     scan_wnd_size[0], scan_wnd_size[1]), y_data)
 
             print y_data.shape
@@ -128,15 +139,13 @@ for js_file in js_filenames:
 
 
 
-
-
 x_data = numpy.array(x_data_list)
-numpy.save('../array train dataset/big_pic_blocks/it%d_image_%dx%d.npy' % ((iteration/50)+1,
+numpy.save(array_save_dir + 'big_pic_blocks/it%d_image_%dx%d.npy' % ((iteration/50)+1,
                     scan_wnd_size[0], scan_wnd_size[1]), x_data)
 
 print x_data.shape
 y_data = numpy.array(y_data_list)
-numpy.save('../array train dataset/big_pic_blocks/it%d_labels_%dx%d.npy' % ((iteration/50)+1,
+numpy.save(array_save_dir + 'big_pic_blocks/it%d_labels_%dx%d.npy' % ((iteration/50)+1,
                         scan_wnd_size[0], scan_wnd_size[1]), y_data)
 
 print y_data.shape

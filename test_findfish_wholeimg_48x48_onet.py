@@ -1,7 +1,13 @@
+from os import listdir
+from os.path import isfile, join
+import tensorflow as tf
 import numpy
 import copy
 
-import tensorflow as tf
+from skimage import io, transform, filters, color
+from skimage.feature import canny
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
 
 scan_wnd_size = [48, 48]
 
@@ -94,14 +100,12 @@ b_fc1 = bias_variable([256], name='bfc1_pnet')
 h_pool2_flat = tf.reshape(h_conv4, [-1, 3 * 3 * 128])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
-keep_prob = tf.placeholder(tf.float32)
-h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob, name='hfc1drop_pnet')
 
 W_fc2 = weight_variable([256, 2], name='wfc2_pnet')
 b_fc2 = bias_variable([2], name='bfc2_pnet')
 
 
-y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
 
 sess = tf.InteractiveSession()
 tf.global_variables_initializer().run()
@@ -113,69 +117,46 @@ cross_entropy = tf.reduce_mean(
 
 mse = tf.reduce_mean(tf.square(y_-y_conv))
 
-loss = mse + cross_entropy
-
 
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-train_step = tf.train.AdamOptimizer(1e-6).minimize(loss)
+train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
-#
-# saver.restore(sess, save_models_dir + 'onet_train.ckpt')
-# print("Model restored.")
 
-step = 0
-batch_i = 0
-min_acc = 2.0
-max_acc = 0.0
-total_acc = 0
-while True:
+test_pics_folder = '../test dataset/'
 
-    if batch_i*50 > x_data.shape[0]:
-        avg_acc = float(total_acc) / batch_i
-        batch_i = 0
+test_pics = [f for f in listdir(test_pics_folder)
+               if isfile(join(test_pics_folder, f))]
 
-        print 'minimum accuracy is %f' % min_acc
-        print 'maximum accuracy is %f' % max_acc
-        print 'average accuracy is %f' % avg_acc
-        print 'Save model'
-        print
 
-        save_path = saver.save(sess, save_path=save_models_dir + 'onet_train.ckpt')
+test_pics_folder = '../test dataset/'
 
-        if min_acc > 0.99:
-            print 'Break the training loop...'
-            break
+test_pics = [f for f in listdir(test_pics_folder)
+               if isfile(join(test_pics_folder, f))]
+
+
+with tf.Session() as sess:
+    saver.restore(sess, save_models_dir + 'onet_train.ckpt')
+    print("Model restored.")
+
+    for test_pic_name in test_pics:
+        test_pic_path = test_pics_folder + test_pic_name
+
+        image = io.imread(test_pic_path)
+
+        image_data = transform.resize(image, numpy.array(scan_wnd_size))
+        image_data = numpy.array(image_data, dtype=float)
+        image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
+        y_predict = y_conv.eval({x: image_data}, sess)
+
+        if y_predict[0][0] > y_predict[0][1]:
+            print 'has fish'
 
         else:
-            min_acc = 2
-            max_acc = 0.0
-            total_acc = 0.0
+            print 'no fish'
 
-    x_data_batch = x_data[batch_i*50:batch_i*50+50, 0:scan_wnd_size[0] * scan_wnd_size[1], 0:3]
-    y_data_batch = y_data[batch_i*50:batch_i*50+50, 0:2]
-
-    train_step.run({y_: y_data_batch, x: x_data_batch, keep_prob: 0.5}, sess)
-
-    e = sess.run(loss, feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
-    train_accuracy = accuracy.eval(feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
-
-    if min_acc > train_accuracy:
-        min_acc = train_accuracy
-
-    if max_acc < train_accuracy:
-        max_acc = train_accuracy
-
-    total_acc += train_accuracy
-
-    # print 'accuracy is %f' % train_accuracy
-    # print 'cross entropy is %f' % e
-    # print 'batch index is %d' % batch_i
-    # print
-
-
-    batch_i += 1
-    step += 1
+        plt.imshow(image)
+        plt.show()

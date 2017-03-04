@@ -65,57 +65,57 @@ def max_pool_3x3(x):
 
 #########################
 
-x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1]])
+x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
 y_ = tf.placeholder(tf.float32, [None, 4])
 
-x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 1], name='image_pnet')
+x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 3], name='image_pnet')
 
-W_conv1 = weight_variable([3, 3, 1, 16], name='wconv1_pnet')
-b_conv1 = bias_variable([16], name='bconv1_pnet')
+W_conv1 = weight_variable([7, 7, 3, 48], name='wconv1_pnet')
+b_conv1 = bias_variable([48], name='bconv1_pnet')
 h_conv1 = tf.nn.sigmoid(conv2d_a(x_image, W_conv1) + b_conv1)
 h_pool1 = max_pool_2x2(h_conv1)  ## one layer 3x3 max pooling
-# h_norm1 = tf.contrib.layers.batch_norm(h_pool1)
+h_norm1 = tf.contrib.layers.batch_norm(h_pool1)
 
-W_conv2 = weight_variable([3, 3, 16, 32], name='wconv2_pnet')
-b_conv2 = bias_variable([32], name='bconv2_pnet')
-h_conv2 = tf.nn.sigmoid(conv2d_a(h_pool1, W_conv2) + b_conv2)
-# h_norm2 = tf.contrib.layers.batch_norm(h_conv2)
-h_pool2 = max_pool_2x2(h_conv2)  ## one layer 2x2 max pooling
+W_conv2 = weight_variable([7, 7, 48, 64], name='wconv2_pnet')
+b_conv2 = bias_variable([64], name='bconv2_pnet')
+h_conv2 = tf.nn.sigmoid(conv2d_a(h_norm1, W_conv2) + b_conv2)
+h_norm2 = tf.contrib.layers.batch_norm(h_conv2)
+h_pool2 = max_pool_2x2(h_norm2)  ## one layer 2x2 max pooling
 
-W_conv3 = weight_variable([3, 3, 32, 64], name='wconv3_pnet')
+W_conv3 = weight_variable([3, 3, 64, 64], name='wconv3_pnet')
 b_conv3 = bias_variable([64], name='bconv3_pnet')
 h_conv3 = tf.nn.sigmoid(conv2d_a(h_pool2, W_conv3) + b_conv3)
 h_pool3 = max_pool_2x2(h_conv3)  ## one layer 2x2 max pooling
 
-W_conv4 = weight_variable([3, 3, 64, 128], name='wconv4_pnet')
-b_conv4 = bias_variable([128], name='bconv4_pnet')
+W_conv4 = weight_variable([3, 3, 64, 64], name='wconv4_pnet')
+b_conv4 = bias_variable([64], name='bconv4_pnet')
 h_conv4 = tf.nn.sigmoid(conv2d_a(h_pool3, W_conv4) + b_conv4)
 h_pool4 = max_pool_2x2(h_conv4)
 
-W_conv5 = weight_variable([3, 3, 128, 128], name='wconv5_pnet')
-b_conv5 = bias_variable([128], name='bconv5_pnet')
+W_conv5 = weight_variable([3, 3, 64, 64], name='wconv5_pnet')
+b_conv5 = bias_variable([64], name='bconv5_pnet')
 h_conv5 = tf.nn.sigmoid(conv2d_a(h_pool4, W_conv5) + b_conv5)
 h_pool5 = max_pool_2x2(h_conv5)
 
-W_conv6 = weight_variable([3, 3, 128, 256], name='wconv6_pnet')
-b_conv6 = bias_variable([256], name='bconv6_pnet')
+W_conv6 = weight_variable([3, 3, 64, 64], name='wconv6_pnet')
+b_conv6 = bias_variable([64], name='bconv6_pnet')
 h_conv6 = tf.nn.sigmoid(conv2d_a(h_pool5, W_conv6) + b_conv6)
 h_pool6 = max_pool_2x2(h_conv6)
 
-W_conv7 = weight_variable([1, 1, 256, 256], name='wconv7_pnet')
-b_conv7 = bias_variable([256], name='bconv7_pnet')
-h_conv7 = tf.nn.relu(conv2d_a(h_pool6, W_conv7) + b_conv7)
-h_pool7 = max_pool_2x2(h_conv7)
+# W_conv7 = weight_variable([1, 1, 256, 256], name='wconv7_pnet')
+# b_conv7 = bias_variable([256], name='bconv7_pnet')
+# h_conv7 = tf.nn.relu(conv2d_a(h_pool6, W_conv7) + b_conv7)
+# h_pool7 = max_pool_2x2(h_conv7)
 
 
 ## fully connected
-W_fc1 = weight_variable([2*2*256, 256], name='wfc1_pnet')
-b_fc1 = bias_variable([256], name='bfc1_pnet')
+W_fc1 = weight_variable([4*4*64, 64], name='wfc1_pnet')
+b_fc1 = bias_variable([64], name='bfc1_pnet')
 
-h_pool2_flat = tf.reshape(h_pool7, [-1, 2*2*256])
+h_pool2_flat = tf.reshape(h_pool6, [-1, 4*4*64])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
-W_fc2 = weight_variable([256, 4], name='wfc2_pnet')
+W_fc2 = weight_variable([64, 4], name='wfc2_pnet')
 b_fc2 = bias_variable([4], name='bfc2_pnet')
 
 y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
@@ -155,14 +155,14 @@ with tf.Session() as sess:
         test_pic_path = test_pics_folder + test_pic_name
 
         image = io.imread(test_pic_path)
-        image_data = color.rgb2grey(image)
-        image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
-        image_data = numpy.array(image_data, dtype=float)
-        image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1])
+        # image_data = color.rgb2grey(image)
+        image_resize = transform.resize(image, numpy.array(scan_wnd_size))
+        image_data = numpy.array(image_resize, dtype=float)
+        image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
 
         y_predict = y_conv.eval({x: image_data}, sess)
 
-        plt.imshow(image)
+        plt.imshow(image_resize)
         ax = plt.gca()
         rect = mpatches.Rectangle((y_predict[0][0], y_predict[0][1]),
                                   y_predict[0][2], y_predict[0][3],

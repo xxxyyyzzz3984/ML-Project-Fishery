@@ -41,12 +41,12 @@ def max_pool_3x3(x):
 # ##############
 scan_wnd_size = [48, 48]
 
-x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1]])
+x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
 y_ = tf.placeholder(tf.float32, [None, 2])
 
-x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 1], name='image_pnet')
+x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 3], name='image_pnet')
 
-W_conv1 = weight_variable([3, 3, 1, 32], name='wconv1_pnet')
+W_conv1 = weight_variable([3, 3, 3, 32], name='wconv1_pnet')
 b_conv1 = bias_variable([32], name='bconv1_pnet')
 h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 h_pool1 = max_pool_3x3(h_conv1)  ## one layer 3x3 max pooling
@@ -72,6 +72,8 @@ b_fc1 = bias_variable([256], name='bfc1_pnet')
 h_pool2_flat = tf.reshape(h_conv4, [-1, 3 * 3 * 128])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
+keep_prob = tf.placeholder(tf.float32)
+
 W_fc2 = weight_variable([256, 2], name='wfc2_pnet')
 b_fc2 = bias_variable([2], name='bfc2_pnet')
 
@@ -87,6 +89,9 @@ test_pics = [f for f in listdir(test_pics_folder)
 
 
 saver = tf.train.Saver()
+false_image_list = []
+count = 0
+file_count = 1
 with tf.Session() as sess:
     saver.restore(sess, save_models_dir + 'onet_train.ckpt')
     print("Model restored.")
@@ -96,7 +101,6 @@ with tf.Session() as sess:
     #
         image = io.imread(test_pic_path)
 
-        image = transform.rescale(image, 0.6)
     #     image_data = transform.resize(image, numpy.array(scan_wnd_size))
     #     image_data = numpy.array(image_data, dtype=float)
     #     image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
@@ -111,39 +115,52 @@ with tf.Session() as sess:
     #     ax.add_patch(rect)
     #     plt.show()
 
-
-
         search_stride = 20
 
-        i_w = 60
-        j_w = 60
+        i_w = 300
+        j_w = 300
 
         i_total = image.shape[0] / search_stride
         j_total = image.shape[1] / search_stride
-
         plt.imshow(image)
         ax = plt.gca()
-
-        image_grey = color.rgb2grey(image)
-
         for i in range(i_total):
             for j in range(j_total):
 
-                image_data = copy.copy(image_grey[i * search_stride:i * search_stride + i_w, j * search_stride:j * search_stride + j_w])
+                image_data = copy.copy(image[i * search_stride:i * search_stride + i_w,
+                                       j * search_stride:j * search_stride + j_w, 0:3])
 
                 image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
                 image_data = numpy.array(image_data, dtype=float)
-                image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1])
+                image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
                 y_predict = y_conv.eval({x: image_data}, sess)
 
-                if y_predict[0][0] > 1.2:
-                    print y_predict
+                if y_predict[0][0] > y_predict[0][1]:
                     rect = mpatches.Rectangle((j * search_stride, i * search_stride), j_w, i_w,
                                               fill=False, edgecolor='red', linewidth=2)
 
+#                     image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
+#
+#                     false_image_list.append(copy.copy(image_data))
+#
+#                     count += 1
+#
                     ax.add_patch(rect)
-
+#                     if count % 50 == 0:
+#                         false_image_data = numpy.array(false_image_list)
+#                         print false_image_data.shape
+#                         numpy.save('false_image_id%d_%dx%d' %
+#                         (file_count, scan_wnd_size[0], scan_wnd_size[1]), false_image_data)
+#                         false_image_list = []
+#                         file_count += 1
+#
+#
         plt.show()
+#
+#
+# false_image_data = numpy.array(false_image_list)
+# print false_image_data.shape
+# numpy.save('false_image_%dx%d'%(scan_wnd_size[0], scan_wnd_size[1]), false_image_data)
 
 
 

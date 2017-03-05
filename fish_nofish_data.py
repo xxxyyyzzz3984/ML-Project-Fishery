@@ -59,7 +59,7 @@ no_fish_dir = 'NoF/'
 # no fish part
 x_data_list = []
 scan_wnd_size = [48, 48]
-no_patch_eachpic = 20
+no_patch_eachpic = 3
 nofish_pics = [f for f in listdir(training_fish_dir+no_fish_dir)
                if isfile(join(training_fish_dir+no_fish_dir, f))]
 
@@ -76,7 +76,7 @@ for nofish_pic_name in nofish_pics:
                 y = random.randint(0, 720)
                 x = random.randint(0, 1280)
 
-                image_data = copy.copy(image_grey[x:x+300, y:y+300])
+                image_data = copy.copy(image_grey[x:x+100, y:y+100])
 
                 image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
 

@@ -1,9 +1,14 @@
-import random
-
+from os import listdir
+from os.path import isfile, join
+import tensorflow as tf
 import numpy
 import copy
 
-import tensorflow as tf
+from skimage import io, transform, filters, color
+from skimage.feature import canny
+import matplotlib.patches as mpatches
+import matplotlib.pyplot as plt
+
 
 scan_wnd_size = [48, 48]
 
@@ -63,13 +68,12 @@ h_pool2_flat = tf.reshape(h_conv4, [-1, 3 * 3 * 64])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
 keep_prob = tf.placeholder(tf.float32)
-h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob, name='hfc1drop_pnet')
 
 W_fc2 = weight_variable([128, 2], name='wfc2_pnet')
 b_fc2 = bias_variable([2], name='bfc2_pnet')
 
 
-y_conv = tf.matmul(h_fc1_drop, W_fc2) + b_fc2
+y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
 
 
 cross_entropy = tf.reduce_mean(
@@ -89,96 +93,67 @@ accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 train_step = tf.train.AdamOptimizer(0.1).minimize(cross_entropy)
 
-sess = tf.InteractiveSession()
-sess.run(tf.global_variables_initializer())
 
+
+test_pics_folder = '../../test dataset/'
+
+test_pics = [f for f in listdir(test_pics_folder)
+               if isfile(join(test_pics_folder, f))]
 
 
 saver = tf.train.Saver()
-#
-# saver.restore(sess, save_models_dir + 'onet_train.ckpt')
-# print("Model restored.")
+with tf.Session() as sess:
+    saver.restore(sess, save_models_dir + 'onet_train.ckpt')
+    print("Model restored.")
+
+    for test_pic_name in test_pics:
+        test_pic_path = test_pics_folder + test_pic_name
+    #
+        image = io.imread(test_pic_path)
+
+        search_stride = 20
+
+        i_w = 100
+        j_w = 100
+
+        i_total = image.shape[0] / search_stride
+        j_total = image.shape[1] / search_stride
+
+        plt.imshow(image)
+        ax = plt.gca()
 
 
-min_acc = 100
-max_acc = 0
-total_acc = 0
-file_count = 1
+        for i in range(i_total):
+            for j in range(j_total):
 
-y_data_list = []
-x_data_fish = numpy.load('../../array train dataset/whole_fish_horiz_48x48.npy')
-x_data_nofish = numpy.load('../../array train dataset/nofish_imagedata_48x48.npy')
+                image_data = copy.copy(image[i * search_stride:i * search_stride + i_w,
+                                       j * search_stride:j * search_stride + j_w, 0:3])
 
-x_data = numpy.concatenate((x_data_fish, x_data_nofish))
-for i in range(x_data_fish.shape[0]):
-    y_data_list.append([1, 0])
+                image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
+                image_data = numpy.array(image_data, dtype=float)
+                image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
+                y_predict = y_conv.eval({x: image_data}, sess)
 
-for j in range(x_data_nofish.shape[0]):
-    y_data_list.append([0, 1])
+                if y_predict[0][0] > y_predict[0][1]:
+                    rect = mpatches.Rectangle((j * search_stride, i * search_stride), j_w, i_w,
+                                              fill=False, edgecolor='red', linewidth=2)
 
-y_data = numpy.array(y_data_list)
+                    ax.add_patch(rect)
 
-####shuffle
-for i in range(x_data.shape[0] / 2):
-    if i % 2 == 0:
-        j = x_data.shape[0]
-
-        x_tmp = copy.copy(x_data[i])
-        x_data[i] = copy.copy(x_data[j - i - 1])
-        x_data[j - i - 1] = copy.copy(x_tmp)
-
-        y_tmp = copy.copy(y_data[i])
-        y_data[i] = copy.copy(y_data[j - i - 1])
-        y_data[j - i - 1] = copy.copy(y_tmp)
-#########
-total_rounds = (y_data.shape[0]/50) + 1
+        plt.show()
 
 
-step = 0
 
-while True:
 
-    train_step.run({y_: y_data, x: x_data,
-                    keep_prob: 0.5}, sess)
+    # count = 0
+    # for i in range(100):
+    #     y_predict = y_conv.eval({x: image_data}, sess)
+    #     if y_predict[0][0] > y_predict[0][1]:
+    #         count += 1
 
-    e = sess.run(cross_entropy, feed_dict={y_: y_data,
-                                           x: x_data,
-                    keep_prob: 0.5})
+    # y_predict = y_conv.eval({x: image_data}, sess)
+    #
+    # print y_predict
 
-    train_accuracy = accuracy.eval({y_: y_data,
-                                    x: x_data,
-                    keep_prob: 0.5})
-
-    if min_acc > train_accuracy:
-        min_acc = train_accuracy
-
-    if max_acc < train_accuracy:
-        max_acc = train_accuracy
-
-    total_acc += train_accuracy
-
-    step += 1
-
-    print train_accuracy
-
-    if train_accuracy > 0.99:
-        print 'save model'
-        save_path = saver.save(sess, save_path=save_models_dir + 'head_onet_train.ckpt')
-        break
-
-    if step > 20:
-
-        print 'save model'
-        # print 'minimum acc is %f' % min_acc
-        # print 'maximum acc is %f' % max_acc
-        # print 'average acc is %f' % (total_acc / (step-1))
-
-        save_path = saver.save(sess, save_path=save_models_dir + 'head_onet_train.ckpt')
-
-        step = 0
-
-        min_acc = 100
-        max_acc = 0
-
-        total_acc = 0
-
+# ## PNET Part Finishes
+# ##############

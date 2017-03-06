@@ -37,7 +37,7 @@ def max_pool_3x3(x):
 scan_wnd_size = [48, 48]
 ###########data loading####################
 y_data_list = []
-x_data = numpy.load('../array train dataset/whole_fish_horiz_%dx%d.npy' % (scan_wnd_size[0],
+x_data = numpy.load('../array train dataset/fish_imagedata_%dx%d.npy' % (scan_wnd_size[0],
                                                                          scan_wnd_size[1]))
 fish_len = x_data.shape[0]
 
@@ -157,15 +157,6 @@ while True:
 
         save_path = saver.save(sess, save_path=save_models_dir + 'onet_train.ckpt')
 
-        if min_acc > 0.99:
-            print 'Break the training loop...'
-            break
-
-        else:
-            min_acc = 2
-            max_acc = 0.0
-            total_acc = 0.0
-
     if batch_i*50 > x_data.shape[0]:
         avg_acc = float(total_acc) / batch_i
 
@@ -177,11 +168,54 @@ while True:
 
         save_path = saver.save(sess, save_path=save_models_dir + 'onet_train.ckpt')
 
-        min_acc = 2
-        max_acc = 0.0
-        total_acc = 0.0
+        if avg_acc > 0.97:
+            print 'loading new data.......'
+            print 'Save model'
+            save_path = saver.save(sess, save_path=save_models_dir + 'onet_train.ckpt')
 
+            ###########data loading####################
+            y_data_list = []
+            x_data = numpy.load('../array train dataset/fish_imagedata_%dx%d.npy' % (scan_wnd_size[0],
+                                                                                       scan_wnd_size[1]))
+            fish_len = x_data.shape[0]
+
+            random_file_ids = [random.randrange(1, 900, 1) for _ in range(100)]
+
+            for random_file_id in random_file_ids:
+                x_false_imagedata = numpy.load('../array train dataset/reinforcement_false_image_48x48/'
+                                               'false_image_id%d_48x48.npy' % random_file_id)
+                x_data = numpy.concatenate((x_data, copy.copy(x_false_imagedata)))
+
+            for i in range(x_data.shape[0]):
+                if i < fish_len:
+                    y_data_list.append([1, 0])  ## [1, 0] denotes has fish
+                else:
+                    y_data_list.append([0, 1])  ## [0, 1] denotes no fish
+
+            x_data = x_data.reshape(x_data.shape[0], scan_wnd_size[0] * scan_wnd_size[1], 3)
+            y_data = numpy.array(y_data_list)
+            y_data = y_data.reshape(len(y_data), 2)
+
+            ####shuffle
+            for i in range(x_data.shape[0] / 2):
+                if i % 2 == 0:
+                    j = x_data.shape[0]
+
+                    x_tmp = copy.copy(x_data[i])
+                    x_data[i] = copy.copy(x_data[j - i - 1])
+                    x_data[j - i - 1] = copy.copy(x_tmp)
+
+                    y_tmp = copy.copy(y_data[i])
+                    y_data[i] = copy.copy(y_data[j - i - 1])
+                    y_data[j - i - 1] = copy.copy(y_tmp)
+                    #########
+
+        step = 0
         batch_i = 0
+        min_acc = 2.0
+        max_acc = 0.0
+        total_acc = 0
+        avg_acc = 0
 
 
     x_data_batch = x_data[batch_i*50:batch_i*50+50, 0:scan_wnd_size[0] * scan_wnd_size[1]]
@@ -204,47 +238,7 @@ while True:
     batch_i += 1
     step += 1
 
-    if avg_acc > 0.9:
-        print 'loading new data.......'
-        print 'Save model'
-        save_path = saver.save(sess, save_path=save_models_dir + 'onet_train.ckpt')
 
-        ###########data loading####################
-        y_data_list = []
-        x_data = numpy.load('../array train dataset/whole_fish_horiz_%dx%d.npy' % (scan_wnd_size[0],
-                                                                                   scan_wnd_size[1]))
-        fish_len = x_data.shape[0]
-
-        random_file_ids = [random.randrange(1, 900, 1) for _ in range(100)]
-
-        for random_file_id in random_file_ids:
-            x_false_imagedata = numpy.load('../array train dataset/reinforcement_false_image_48x48/'
-                                           'false_image_id%d_48x48.npy' % random_file_id)
-            x_data = numpy.concatenate((x_data, copy.copy(x_false_imagedata)))
-
-        for i in range(x_data.shape[0]):
-            if i < fish_len:
-                y_data_list.append([1, 0])  ## [1, 0] denotes has fish
-            else:
-                y_data_list.append([0, 1])  ## [0, 1] denotes no fish
-
-        x_data = x_data.reshape(x_data.shape[0], scan_wnd_size[0] * scan_wnd_size[1], 3)
-        y_data = numpy.array(y_data_list)
-        y_data = y_data.reshape(len(y_data), 2)
-
-        ####shuffle
-        for i in range(x_data.shape[0] / 2):
-            if i % 2 == 0:
-                j = x_data.shape[0]
-
-                x_tmp = copy.copy(x_data[i])
-                x_data[i] = copy.copy(x_data[j - i - 1])
-                x_data[j - i - 1] = copy.copy(x_tmp)
-
-                y_tmp = copy.copy(y_data[i])
-                y_data[i] = copy.copy(y_data[j - i - 1])
-                y_data[j - i - 1] = copy.copy(y_tmp)
-                #########
 
         ###########data loading######################
 

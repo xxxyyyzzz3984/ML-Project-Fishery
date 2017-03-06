@@ -29,7 +29,7 @@ no_fish_dir = 'NoF/'
 
 # get fish data part
 x_data_list = []
-scan_wnd_size = [12, 12]
+scan_wnd_size = [48, 48]
 for fish_dir in fish_dirs:
     folder_path = '../cropped train dataset/' + fish_dir + '/'
     fish_pics = [f for f in listdir(folder_path) if isfile(join(folder_path, f))]

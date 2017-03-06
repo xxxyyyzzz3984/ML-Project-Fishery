@@ -8,7 +8,6 @@ from skimage import io, transform, filters, color
 from skimage.feature import canny
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-
 '''Inspired by CVPR 16 paper, Joint Face Detection and Alignment using
 Multi-task Cascaded Convolutional Networks'''
 
@@ -36,10 +35,11 @@ def max_pool_3x3(x):
 
 
 # ##############
-# ## PNET Part
+# ## ONET Part
 # ##############
 
-scan_wnd_size = [12, 12]
+scan_wnd_size = [64, 64]
+
 ###########data loading######################
 
 x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
@@ -47,39 +47,44 @@ y_ = tf.placeholder(tf.float32, [None, 2])
 
 x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 3], name='image_pnet')
 
-W_conv1 = weight_variable([3, 3, 3, 16], name='wconv1_pnet')
-b_conv1 = bias_variable([16], name='bconv1_pnet')
+W_conv1 = weight_variable([3, 3, 3, 32], name='wconv1_pnet')
+b_conv1 = bias_variable([32], name='bconv1_pnet')
 h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
-h_pool1 = max_pool_2x2(h_conv1)  ## one layer 3x3 max pooling
+h_pool1 = max_pool_3x3(h_conv1)  ## one layer 3x3 max pooling
 
-W_conv2 = weight_variable([3, 3, 16, 32], name='wconv2_pnet')
-b_conv2 = bias_variable([32], name='bconv2_pnet')
+W_conv2 = weight_variable([3, 3, 32, 64], name='wconv2_pnet')
+b_conv2 = bias_variable([64], name='bconv2_pnet')
 h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
-h_pool2 = max_pool_2x2(h_conv2)  ## one layer 3x3 max pooling
+h_pool2 = max_pool_3x3(h_conv2)  ## one layer 2x2 max pooling
 
-
-W_conv3 = weight_variable([3, 3, 32, 64], name='wconv3_pnet')
+W_conv3 = weight_variable([3, 3, 64, 64], name='wconv3_pnet')
 b_conv3 = bias_variable([64], name='bconv3_pnet')
 h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
+h_pool3 = max_pool_2x2(h_conv3)  ## one layer 2x2 max pooling
+
+W_conv4 = weight_variable([2, 2, 64, 128], name='wconv4_pnet')
+b_conv4 = bias_variable([128], name='bconv4_pnet')
+h_conv4 = tf.nn.relu(conv2d(h_pool3, W_conv4) + b_conv4)
 
 ## fully connected
-W_fc1 = weight_variable([3 * 3 * 64, 128], name='wfc1_pnet')
-b_fc1 = bias_variable([128], name='bfc1_pnet')
+W_fc1 = weight_variable([4 * 4 * 128, 256], name='wfc1_pnet')
+b_fc1 = bias_variable([256], name='bfc1_pnet')
 
-h_pool2_flat = tf.reshape(h_conv3, [-1, 3 * 3 * 64])
+h_pool2_flat = tf.reshape(h_conv4, [-1, 4 * 4 * 128])
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
 keep_prob = tf.placeholder(tf.float32)
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob, name='hfc1drop_pnet')
 
-W_fc2 = weight_variable([128, 2], name='wfc2_pnet')
+W_fc2 = weight_variable([256, 2], name='wfc2_pnet')
 b_fc2 = bias_variable([2], name='bfc2_pnet')
 
 
 y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
 
 
-test_pics_folder = '../train dataset/ALB/'
+
+test_pics_folder = '../train dataset/NoF/'
 
 test_pics = [f for f in listdir(test_pics_folder)
                if isfile(join(test_pics_folder, f))]
@@ -90,7 +95,7 @@ false_image_list = []
 count = 0
 file_count = 1
 with tf.Session() as sess:
-    saver.restore(sess, save_models_dir + 'pnet_train.ckpt')
+    saver.restore(sess, save_models_dir + 'rnet_train.ckpt')
     print("Model restored.")
 
     for test_pic_name in test_pics:
@@ -114,8 +119,8 @@ with tf.Session() as sess:
 
         search_stride = 20
 
-        i_w = 300
-        j_w = 300
+        i_w = 100
+        j_w = 100
 
         i_total = image.shape[0] / search_stride
         j_total = image.shape[1] / search_stride

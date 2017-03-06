@@ -79,7 +79,7 @@ b_fc2 = bias_variable([2], name='bfc2_pnet')
 y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
 
 
-test_pics_folder = '../train dataset/ALB/'
+test_pics_folder = '../train dataset/NoF/'
 
 test_pics = [f for f in listdir(test_pics_folder)
                if isfile(join(test_pics_folder, f))]
@@ -114,8 +114,8 @@ with tf.Session() as sess:
 
         search_stride = 20
 
-        i_w = 300
-        j_w = 300
+        i_w = 100
+        j_w = 100
 
         i_total = image.shape[0] / search_stride
         j_total = image.shape[1] / search_stride
@@ -136,20 +136,23 @@ with tf.Session() as sess:
                     rect = mpatches.Rectangle((j * search_stride, i * search_stride), j_w, i_w,
                                               fill=False, edgecolor='red', linewidth=2)
 
-#                     image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
+                    # image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
+                    #
+                    # false_image_list.append(copy.copy(image_data))
 #
-#                     false_image_list.append(copy.copy(image_data))
-#
-#                     count += 1
+                    # count += 1
 #
                     ax.add_patch(rect)
-#                     if count % 50 == 0:
-#                         false_image_data = numpy.array(false_image_list)
-#                         print false_image_data.shape
-#                         numpy.save('false_image_id%d_%dx%d' %
-#                         (file_count, scan_wnd_size[0], scan_wnd_size[1]), false_image_data)
-#                         false_image_list = []
-#                         file_count += 1
+                    # if count % 50 == 0:
+                    #     false_image_data = numpy.array(false_image_list)
+                    #     print false_image_data.shape
+                    #     numpy.save('../array train dataset/'
+                    #                'reinforcement_false_image_%dx%d/'
+                    #                'false_image_id%d_%dx%d.npy' %
+                    #     (scan_wnd_size[0], scan_wnd_size[1], file_count,
+                    #      scan_wnd_size[0], scan_wnd_size[1]), false_image_data)
+                    #     false_image_list = []
+                    #     file_count += 1
 #
 #
         plt.show()

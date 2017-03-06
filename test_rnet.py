@@ -84,7 +84,7 @@ y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
 
 
 
-test_pics_folder = '../train dataset/NoF/'
+test_pics_folder = '../train dataset/BET/'
 
 test_pics = [f for f in listdir(test_pics_folder)
                if isfile(join(test_pics_folder, f))]

@@ -37,7 +37,7 @@ def max_pool_3x3(x):
 scan_wnd_size = [12, 12]
 ###########data loading####################
 y_data_list = []
-x_data = numpy.load('../array train dataset/whole_fish_horiz_%dx%d.npy' % (scan_wnd_size[0],
+x_data = numpy.load('../array train dataset/fish_imagedata_%dx%d.npy' % (scan_wnd_size[0],
                                                                          scan_wnd_size[1]))
 fish_len = x_data.shape[0]
 
@@ -131,8 +131,8 @@ train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
 #
-saver.restore(sess, save_models_dir + 'pnet_train.ckpt')
-print("Model restored.")
+# saver.restore(sess, save_models_dir + 'pnet_train.ckpt')
+# print("Model restored.")
 
 step = 0
 batch_i = 0
@@ -153,15 +153,6 @@ while True:
 
         save_path = saver.save(sess, save_path=save_models_dir + 'pnet_train.ckpt')
 
-        if min_acc > 0.99:
-            print 'Break the training loop...'
-            break
-
-        else:
-            min_acc = 2
-            max_acc = 0.0
-            total_acc = 0.0
-
     if batch_i*50 > x_data.shape[0]:
         avg_acc = float(total_acc) / batch_i
 
@@ -181,7 +172,7 @@ while True:
 
             ###########data loading####################
             y_data_list = []
-            x_data = numpy.load('../array train dataset/whole_fish_horiz_%dx%d.npy' % (scan_wnd_size[0],
+            x_data = numpy.load('../array train dataset/fish_imagedata_%dx%d.npy' % (scan_wnd_size[0],
                                                                                        scan_wnd_size[1]))
             fish_len = x_data.shape[0]
 

@@ -37,7 +37,7 @@ def max_pool_3x3(x):
 scan_wnd_size = [64, 64]
 ###########data loading####################
 y_data_list = []
-x_data = numpy.load('../array train dataset/whole_fish_horiz_%dx%d.npy' % (scan_wnd_size[0],
+x_data = numpy.load('../array train dataset/fish_imagedata_%dx%d.npy' % (scan_wnd_size[0],
                                                                          scan_wnd_size[1]))
 fish_len = x_data.shape[0]
 
@@ -135,8 +135,8 @@ train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
 #
-saver.restore(sess, save_models_dir + 'rnet_train.ckpt')
-print("Model restored.")
+# saver.restore(sess, save_models_dir + 'rnet_train.ckpt')
+# print("Model restored.")
 
 step = 0
 batch_i = 0
@@ -177,7 +177,7 @@ while True:
 
             ###########data loading####################
             y_data_list = []
-            x_data = numpy.load('../array train dataset/whole_fish_horiz_%dx%d.npy' % (scan_wnd_size[0],
+            x_data = numpy.load('../array train dataset/fish_imagedata_%dx%d.npy' % (scan_wnd_size[0],
                                                                                        scan_wnd_size[1]))
             fish_len = x_data.shape[0]
 

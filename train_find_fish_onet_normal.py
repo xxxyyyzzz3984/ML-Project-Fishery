@@ -1,5 +1,3 @@
-import random
-
 import tensorflow as tf
 import numpy
 import copy
@@ -33,38 +31,26 @@ def max_pool_3x3(x):
 # ##############
 # ## ONET Part
 # ##############
-
 scan_wnd_size = [48, 48]
-###########data loading####################
 y_data_list = []
-x_data = numpy.load('../array train dataset/fish_imagedata_%dx%d.npy' % (scan_wnd_size[0],
+x_data = numpy.load('../array train dataset/whole_fish_horiz_%dx%d.npy' % (scan_wnd_size[0],
                                                                          scan_wnd_size[1]))
-
-x_data = numpy.concatenate((x_data, x_data))
-
 fish_len = x_data.shape[0]
 
-for file_id in range(0, 68):
-    x_false_imagedata = numpy.load('../array train dataset/selective_search_false_image_48x48/'
-                                   'false_image_id%d_48x48.npy' % file_id)
-    x_data = numpy.concatenate((x_data, copy.copy(x_false_imagedata)))
+x_data = numpy.append(x_data, numpy.load('../array train dataset/nofish_imagedata_%dx%d.npy' %
+                                         (scan_wnd_size[0], scan_wnd_size[1])))
 
-x_data_nofish = numpy.load('../array train dataset/nofish_imagedata_48x48.npy')
-x_data = numpy.concatenate((x_data, x_data_nofish))
+total_len = x_data.shape[0]/(scan_wnd_size[0] * scan_wnd_size[1] * 3)
 
-
-for i in range(x_data.shape[0]):
+for i in range(total_len):
     if i < fish_len:
         y_data_list.append([1, 0]) ## [1, 0] denotes has fish
     else:
         y_data_list.append([0, 1]) ## [0, 1] denotes no fish
 
-x_data = x_data.reshape(x_data.shape[0], scan_wnd_size[0] * scan_wnd_size[1], 3)
+x_data = x_data.reshape(total_len, scan_wnd_size[0] * scan_wnd_size[1], 3)
 y_data = numpy.array(y_data_list)
 y_data = y_data.reshape(len(y_data), 2)
-
-print x_data.shape
-print y_data.shape
 
 ####shuffle
 for i in range(x_data.shape[0]/2):
@@ -79,8 +65,6 @@ for i in range(x_data.shape[0]/2):
         y_data[i] = copy.copy(y_data[j - i - 1])
         y_data[j - i - 1] = copy.copy(y_tmp)
 #########
-
-###########data loading######################
 
 x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
 y_ = tf.placeholder(tf.float32, [None, 2])
@@ -142,30 +126,21 @@ train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
 #
-# saver.restore(sess, save_models_dir + 'onet_train.ckpt')
-# print("Model restored.")
+saver.restore(sess, save_path=save_models_dir +
+                                   'onet_detectfish_slidewnd_48x48/'
+                                         'onet_train.ckpt')
+print("Model restored.")
 
 step = 0
 batch_i = 0
 min_acc = 2.0
 max_acc = 0.0
 total_acc = 0
-avg_acc = 0
 while True:
-
-    if batch_i*50 == x_data.shape[0]/2:
-        avg_acc = float(total_acc) / batch_i
-
-        print 'minimum accuracy is %f' % min_acc
-        print 'maximum accuracy is %f' % max_acc
-        print 'average accuracy is %f' % avg_acc
-        print 'Save model'
-        print
-
-        save_path = saver.save(sess, save_path=save_models_dir + 'onet_train.ckpt')
 
     if batch_i*50 > x_data.shape[0]:
         avg_acc = float(total_acc) / batch_i
+        batch_i = 0
 
         print 'minimum accuracy is %f' % min_acc
         print 'maximum accuracy is %f' % max_acc
@@ -173,21 +148,18 @@ while True:
         print 'Save model'
         print
 
-        save_path = saver.save(sess, save_path=save_models_dir + 'onet_train.ckpt')
+        save_path = saver.save(sess, save_path=save_models_dir +
+                                   'onet_detectfish_slidewnd_48x48/'
+                                         'onet_train.ckpt')
 
-        if avg_acc > 0.97:
-            print 'loading new data.......'
-            print 'Save model'
-            save_path = saver.save(sess, save_path=save_models_dir + 'onet_train.ckpt')
+        if min_acc > 0.99:
+            print 'Break the training loop...'
+            break
 
-
-        step = 0
-        batch_i = 0
-        min_acc = 2.0
-        max_acc = 0.0
-        total_acc = 0
-        avg_acc = 0
-
+        else:
+            min_acc = 2
+            max_acc = 0.0
+            total_acc = 0.0
 
     x_data_batch = x_data[batch_i*50:batch_i*50+50, 0:scan_wnd_size[0] * scan_wnd_size[1]]
     y_data_batch = y_data[batch_i*50:batch_i*50+50, 0:2]
@@ -205,11 +177,14 @@ while True:
 
     total_acc += train_accuracy
 
+    # print 'accuracy is %f' % train_accuracy
+    # print 'cross entropy is %f' % e
+    # print 'batch index is %d' % batch_i
+    # print
+
+
     batch_i += 1
     step += 1
-
-        ###########data loading######################
-
 
 
 # ##############

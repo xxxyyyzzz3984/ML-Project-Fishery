@@ -1,5 +1,7 @@
 from os import listdir
 from os.path import isfile, join
+
+import selectivesearch
 import tensorflow as tf
 import numpy
 import copy
@@ -82,76 +84,106 @@ y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
 
 
 
-test_pics_folder = '../test dataset/'
+test_pics_folder = '../train dataset/NoF/'
 
 test_pics = [f for f in listdir(test_pics_folder)
                if isfile(join(test_pics_folder, f))]
 
-
-
-
+false_image_list = []
+count = 0
+file_count = 1
 with tf.Session() as sess:
+    saver = tf.train.Saver()
+    saver.restore(sess, save_models_dir + 'onet_detectfish_slidewnd_48x48/onet_train.ckpt')
 
     for test_pic_name in test_pics:
         test_pic_path = test_pics_folder + test_pic_name
         image = io.imread(test_pic_path)
 
+        print 'start'
+        _, regions = selectivesearch.selective_search\
+            (image, scale=500, sigma=0.9, min_size=200)
+
+        print 'end'
+
+        candidates = set()
+        for r in regions:
+            # excluding same rectangle (with different segments)
+            if r['rect'] in candidates:
+                continue
+            # excluding regions smaller than 2000 pixels
+            if r['size'] < 1000:
+                continue
+
+            # distorted rects
+            x_rect, y_rect, w, h = r['rect']
+
+            try:
+                if w / h > 1.2 or h / w > 1.2:
+                    continue
+            except ZeroDivisionError:
+                continue
+
+            # if r['size'] > image.shape[0] * image.shape[1] / 5:
+            #     continue
+
+            if h >= image.shape[0] / 2 or w >= image.shape[1] / 2:
+                continue
+
+            candidates.add(r['rect'])
+
         model_one_coord = []
         model_two_coord = []
 
-        saver = tf.train.Saver()
-        saver.restore(sess, save_models_dir + 'onet_train.ckpt')
-        print 'restore model 1'
 
-        search_stride = 20
 
-        i_w = 100
-        j_w = 100
-
-        i_total = image.shape[0] / search_stride
-        j_total = image.shape[1] / search_stride
         plt.imshow(image)
         ax = plt.gca()
 
+        for x_rect, y_rect, w, h in candidates:
 
-        for i in range(i_total):
-            for j in range(j_total):
+            # rect = mpatches.Rectangle((x_rect, y_rect), w, h,
+            #                           fill=False, edgecolor='green', linewidth=2)
+            # ax.add_patch(rect)
 
-                image_data = copy.copy(image[i * search_stride:i * search_stride + i_w,
-                                       j * search_stride:j * search_stride + j_w, 0:3])
+            image_data = copy.copy(image[y_rect:y_rect+h, x_rect:x_rect+w, 0:3])
 
-                image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
-                image_data = numpy.array(image_data, dtype=float)
-                image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
-                y_predict = y_conv.eval({x: image_data}, sess)
+            image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
+            image_data = numpy.array(image_data, dtype=float)
+            image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
 
-                if y_predict[0][0] > y_predict[0][1]:
-                    model_one_coord.append([i, j])
+            # saver.restore(sess, save_models_dir + 'onet_train.ckpt')
+            # print 'restore model 1'
+            # y_predict = y_conv.eval({x: image_data}, sess)
+            #
+            # if y_predict[0][0] > y_predict[0][1]:
+            #     model_one_coord.append([x_rect, y_rect, w, h])
 
-        saver = tf.train.Saver()
-        saver.restore(sess, save_models_dir + 'onet_detectfish_slidewnd_48x48/onet_train.ckpt')
-        print 'restore model 2'
-        for i in range(i_total):
-            for j in range(j_total):
+            y_predict = y_conv.eval({x: image_data}, sess)
 
-                image_data = copy.copy(image[i * search_stride:i * search_stride + i_w,
-                                       j * search_stride:j * search_stride + j_w, 0:3])
+            if y_predict[0][0] > y_predict[0][1]:
+                rect = mpatches.Rectangle((x_rect, y_rect), w, h,
+                                          fill=False, edgecolor='red', linewidth=2)
+                # ax.add_patch(rect)
 
-                image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
-                image_data = numpy.array(image_data, dtype=float)
-                image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
-                y_predict = y_conv.eval({x: image_data}, sess)
-
-                if y_predict[0][0] > y_predict[0][1]:
-                    model_two_coord.append([i, j])
-
-        for one_coord in model_one_coord:
-            for two_coord in model_two_coord:
-                if one_coord == two_coord:
-                    rect = mpatches.Rectangle((one_coord[1] * search_stride, one_coord[0] * search_stride), j_w, i_w,
-                                              fill=False, edgecolor='red', linewidth=2)
-
-                    ax.add_patch(rect)
-
-
-        plt.show()
+                image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
+                #
+                false_image_list.append(copy.copy(image_data))
+                #
+                count += 1
+                #
+                if count % 50 == 0:
+                    false_image_data = numpy.array(false_image_list)
+                    print false_image_data.shape
+                    numpy.save('false_image_id%d_%dx%d' %
+                    (file_count, scan_wnd_size[0], scan_wnd_size[1]), false_image_data)
+                    false_image_list = []
+                    file_count += 1
+                #
+                #
+            # plt.show()
+            #
+            #
+    false_image_data = numpy.array(false_image_list)
+    print false_image_data.shape
+    numpy.save('false_image_%dx%d'%(scan_wnd_size[0], scan_wnd_size[1]), false_image_data)

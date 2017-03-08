@@ -5,6 +5,8 @@ import copy
 from PIL import ImageFilter, Image
 import pickle
 import matplotlib.patches as mpatches
+import selectivesearch
+
 
 
 
@@ -53,45 +55,61 @@ for js_file in js_filenames:
 
         fish_info_list = each_fish_data_js['annotations']
         # im = Image.open(training_fish_dir + each_fish_data_js['filename'])
-        image_data = io.imread(training_fish_dir + each_fish_data_js['filename'])
-        image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
-        image_data = numpy.array(image_data, dtype=float)
-        image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
-        min_x = 2000
-        min_y = 2000
-        max_h = 0
-        max_w = 0
+        image = io.imread(training_fish_dir + each_fish_data_js['filename'])
+        img_lbl, regions = selectivesearch.selective_search \
+            (image, scale=500, sigma=0.9, min_size=10)
+
+        candidates = set()
+        for r in regions:
+            # excluding same rectangle (with different segments)
+            if r['rect'] in candidates:
+                continue
+
+            # excluding regions smaller than 2000 pixels
+            if r['size'] < 6000:
+                continue
+
+            # distorted rects
+            x_rect, y_rect, w, h = r['rect']
+
+            # if r['size'] > image.shape[0] * image.shape[1] / 5:
+            #     continue
+            #
+            if h >= image.shape[0] / 2 or w >= image.shape[1] / 2:
+                continue
+
+            candidates.add(r['rect'])
+
+
+        # image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
+        # image_data = numpy.array(image_data, dtype=float)
+        # image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
+        plt.imshow(image)
+        ax = plt.gca()
+
         for fish_info_js in fish_info_list:
             x = fish_info_js['x']
             y = fish_info_js['y']
             width = fish_info_js['width']
             height = fish_info_js['height']
 
-            if min_x > x:
-                min_x = x
+            for x_ss, y_ss, w_ss, h_ss in candidates:
+                rect = mpatches.Rectangle((x_ss, y_ss), w_ss, h_ss,
+                                          fill=False, edgecolor='green', linewidth=2)
+                ax.add_patch(rect)
+                if x_ss <= x and y_ss <= y and x_ss+w_ss >= x+width-50 and y_ss+h_ss >= y+height-50:
+                    rect = mpatches.Rectangle((x_ss, y_ss), w_ss, h_ss,
+                                              fill=False, edgecolor='red', linewidth=2)
+                    ax.add_patch(rect)
+        plt.show()
 
-            if min_y > y:
-                min_y = y
 
-            if max_h < y + height:
-                max_h = y + height
 
-            if max_w < x + width:
-                max_w = x + width
 
-        # plt.imshow(io.imread(training_fish_dir + each_fish_data_js['filename']))
-        # ax = plt.gca()
-        # rect = mpatches.Rectangle((min_x, min_y),
-        #                           max_w-min_x, max_h-min_y,
-        #                           fill=False, edgecolor='red', linewidth=2)
+
+        # y_data_list.append(numpy.array([min_x, min_y, max_w-min_x, max_h-min_y]))
         #
-        # ax.add_patch(rect)
-        # plt.show()
-
-
-        y_data_list.append(numpy.array([min_x, min_y, max_w-min_x, max_h-min_y]))
-
-        x_data_list.append(image_data)
+        # x_data_list.append(image_data)
 
 # x_data = numpy.array(x_data_list)
 # numpy.save('../array train dataset/fish_wholeimg_%dx%d.npy' % (scan_wnd_size[0], scan_wnd_size[1]), x_data)

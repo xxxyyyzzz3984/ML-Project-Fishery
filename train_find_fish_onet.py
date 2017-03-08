@@ -142,8 +142,8 @@ train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
 #
-# saver.restore(sess, save_models_dir + 'onet_train.ckpt')
-# print("Model restored.")
+saver.restore(sess, save_models_dir + 'onet_train.ckpt')
+print("Model restored.")
 
 step = 0
 batch_i = 0

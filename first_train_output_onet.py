@@ -15,7 +15,6 @@ import matplotlib.pyplot as plt
 '''Inspired by CVPR 16 paper, Joint Face Detection and Alignment using
 Multi-task Cascaded Convolutional Networks'''
 
-save_models_dir = '../saved models/'
 
 def non_max_suppression_fast(boxes, overlapThresh):
     # if there are no boxes, return an empty list
@@ -72,6 +71,8 @@ def non_max_suppression_fast(boxes, overlapThresh):
     # return only the bounding boxes that were picked using the
     # integer data type
     return boxes[pick].astype("int")
+
+save_models_dir = '../saved models/'
 
 
 def weight_variable(shape, name=None):
@@ -150,110 +151,56 @@ count = 0
 file_count = 1
 with tf.Session() as sess:
     saver = tf.train.Saver()
-    saver.restore(sess, save_models_dir + 'onet_train.ckpt')
+    saver.restore(sess, save_models_dir + 'onet_detectfish_slidewnd_48x48/onet_train.ckpt')
 
     for test_pic_name in test_pics:
         test_pic_path = test_pics_folder + test_pic_name
-        image = io.imread(test_pic_path)
 
         boxes = []
 
-        print 'start'
-        _, regions = selectivesearch.selective_search\
-            (image, scale=500, sigma=0.9, min_size=100)
 
-        print 'end'
+        image = io.imread(test_pic_path)
 
-        candidates = set()
-        for r in regions:
-            # excluding same rectangle (with different segments)
-            if r['rect'] in candidates:
-                continue
-            # excluding regions smaller than 2000 pixels
-            if r['size'] < 2000:
-                continue
+        search_stride = 20
+        i_w = 300
+        j_w = 300
 
-            # distorted rects
-            x_rect, y_rect, w, h = r['rect']
-
-            try:
-                if w / h > 1.2 or h / w > 1.2:
-                    continue
-            except ZeroDivisionError:
-                continue
-
-            # if r['size'] > image.shape[0] * image.shape[1] / 5:
-            #     continue
-
-            if h >= image.shape[0] / 2 or w >= image.shape[1] / 2:
-                continue
-
-            candidates.add(r['rect'])
-
-        # model_one_coord = []
-        # model_two_coord = []
-
-
+        i_total = image.shape[0] / search_stride
+        j_total = image.shape[1] / search_stride
 
         plt.imshow(image)
         ax = plt.gca()
 
-        for x_rect, y_rect, w, h in candidates:
+        for i in range(i_total):
+            for j in range(j_total):
 
-            # rect = mpatches.Rectangle((x_rect, y_rect), w, h,
-            #                           fill=False, edgecolor='green', linewidth=2)
-            # ax.add_patch(rect)
+                image_data = copy.copy(image[i * search_stride:i * search_stride + i_w,
+                                       j * search_stride:j * search_stride + j_w, 0:3])
 
-            image_data = copy.copy(image[y_rect:y_rect+h, x_rect:x_rect+w, 0:3])
+                image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
+                image_data = numpy.array(image_data, dtype=float)
+                image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
+                y_predict = y_conv.eval({x: image_data}, sess)
 
-            image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
-            image_data = numpy.array(image_data, dtype=float)
-            image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
-
-            # saver.restore(sess, save_models_dir + 'onet_train.ckpt')
-            # print 'restore model 1'
-            # y_predict = y_conv.eval({x: image_data}, sess)
-            #
-            # if y_predict[0][0] > y_predict[0][1]:
-            #     model_one_coord.append([x_rect, y_rect, w, h])
-
-            y_predict = y_conv.eval({x: image_data}, sess)
-
-            if y_predict[0][0] > y_predict[0][1]:
-                boxes.append([x_rect, y_rect, x_rect + w, y_rect+h])
-                # rect = mpatches.Rectangle((x_rect, y_rect), w, h,
-                #                           fill=False, edgecolor='red', linewidth=2)
-                # ax.add_patch(rect)
-
-                # image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
-                #
-                # false_image_list.append(copy.copy(image_data))
-                #
-                # count += 1
-
-                # if count % 50 == 0:
-                #     false_image_data = numpy.array(false_image_list)
-                #     print false_image_data.shape
-                #     numpy.save('false_image_id%d_%dx%d' %
-                #     (file_count, scan_wnd_size[0], scan_wnd_size[1]), false_image_data)
-                #     false_image_list = []
-                #     file_count += 1
-                #
-                #
+                if y_predict[0][0] > y_predict[0][1]:
+                    # rect = mpatches.Rectangle((j * search_stride, i * search_stride), j_w, i_w,
+                    #                           fill=False, edgecolor='red', linewidth=2)
+                    #
+                    # ax.add_patch(rect)
+                    boxes.append([j*search_stride, i*search_stride, j*search_stride+j_w,
+                                  i*search_stride+i_w])
 
         boxes_arr = numpy.array(boxes)
-        boxes_arr = non_max_suppression_fast(boxes_arr, 0.7)
-        #
+        print boxes_arr.shape
+        boxes_arr = non_max_suppression_fast(boxes_arr, 0.5)
+        print boxes_arr.shape
+
         for box_arr in boxes_arr:
-            rect = mpatches.Rectangle((box_arr[0], box_arr[1]), box_arr[2] - box_arr[0],
-                                      box_arr[3] - box_arr[1],
+            pass
+            rect = mpatches.Rectangle((box_arr[1], box_arr[0]), box_arr[3]-box_arr[1],
+                                      box_arr[2]-box_arr[0],
                                       fill=False, edgecolor='red', linewidth=2)
 
             ax.add_patch(rect)
 
         plt.show()
-            #
-            #
-    # false_image_data = numpy.array(false_image_list)
-    # print false_image_data.shape
-    # numpy.save('false_image_%dx%d'%(scan_wnd_size[0], scan_wnd_size[1]), false_image_data)

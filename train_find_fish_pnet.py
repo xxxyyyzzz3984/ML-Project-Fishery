@@ -41,7 +41,7 @@ x_data = numpy.load('../array train dataset/fish_imagedata_%dx%d.npy' % (scan_wn
                                                                          scan_wnd_size[1]))
 fish_len = x_data.shape[0]
 
-random_file_ids = [random.randrange(1, 900, 1) for _ in range(100)]
+random_file_ids = [random.randrange(1, 263, 1) for _ in range(100)]
 
 for random_file_id in random_file_ids:
     x_false_imagedata = numpy.load('../array train dataset/reinforcement_false_image_12x12/'
@@ -131,8 +131,8 @@ train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
 #
-# saver.restore(sess, save_models_dir + 'pnet_train.ckpt')
-# print("Model restored.")
+saver.restore(sess, save_models_dir + 'pnet_train.ckpt')
+print("Model restored.")
 
 step = 0
 batch_i = 0
@@ -164,7 +164,7 @@ while True:
 
         save_path = saver.save(sess, save_path=save_models_dir + 'pnet_train.ckpt')
 
-        if min_acc > 0.98 and avg_acc > 0.98:
+        if avg_acc > 0.98:
             print 'min acc is %f' % min_acc
             print 'loading new data.......'
             print 'Save model'
@@ -176,7 +176,7 @@ while True:
                                                                                        scan_wnd_size[1]))
             fish_len = x_data.shape[0]
 
-            random_file_ids = [random.randrange(1, 900, 1) for _ in range(100)]
+            random_file_ids = [random.randrange(1, 263, 1) for _ in range(100)]
 
             for random_file_id in random_file_ids:
                 x_false_imagedata = numpy.load('../array train dataset/reinforcement_false_image_12x12/'
@@ -216,7 +216,7 @@ while True:
             ###########data loading######################
 
 
-    x_data_batch = x_data[batch_i*50:batch_i*50+50, 0:scan_wnd_size[0] * scan_wnd_size[1]]
+    x_data_batch = x_data[batch_i*50:batch_i*50+50, 0:scan_wnd_size[0] * scan_wnd_size[1], 0:3]
     y_data_batch = y_data[batch_i*50:batch_i*50+50, 0:2]
 
     train_step.run({y_: y_data_batch, x: x_data_batch, keep_prob: 0.5}, sess)

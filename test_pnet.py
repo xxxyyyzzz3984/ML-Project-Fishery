@@ -79,7 +79,7 @@ b_fc2 = bias_variable([2], name='bfc2_pnet')
 y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
 
 
-test_pics_folder = '../train dataset/NoF/'
+test_pics_folder = '../test dataset/'
 
 test_pics = [f for f in listdir(test_pics_folder)
                if isfile(join(test_pics_folder, f))]
@@ -90,27 +90,17 @@ false_image_list = []
 count = 0
 file_count = 1
 with tf.Session() as sess:
-    saver.restore(sess, save_models_dir + 'pnet_train.ckpt')
-    print("Model restored.")
 
     for test_pic_name in test_pics:
         test_pic_path = test_pics_folder + test_pic_name
-    #
         image = io.imread(test_pic_path)
 
-    #     image_data = transform.resize(image, numpy.array(scan_wnd_size))
-    #     image_data = numpy.array(image_data, dtype=float)
-    #     image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
-    #     y_predict = y_conv.eval({x: image_data}, sess)
-    #
-    #     plt.imshow(image)
-    #     ax = plt.gca()
-    #     rect = mpatches.Rectangle((y_predict[0][0], y_predict[0][1]),
-    #                               y_predict[0][2], y_predict[0][3],
-    #                               fill=False, edgecolor='red', linewidth=2)
-    #
-    #     ax.add_patch(rect)
-    #     plt.show()
+        model_one_coord = []
+        model_two_coord = []
+
+        saver = tf.train.Saver()
+        saver.restore(sess, save_models_dir + 'pnet_train.ckpt')
+        print 'restore model 1'
 
         search_stride = 20
 
@@ -121,6 +111,8 @@ with tf.Session() as sess:
         j_total = image.shape[1] / search_stride
         plt.imshow(image)
         ax = plt.gca()
+
+
         for i in range(i_total):
             for j in range(j_total):
 
@@ -133,47 +125,33 @@ with tf.Session() as sess:
                 y_predict = y_conv.eval({x: image_data}, sess)
 
                 if y_predict[0][0] > y_predict[0][1]:
-                    rect = mpatches.Rectangle((j * search_stride, i * search_stride), j_w, i_w,
+                    model_one_coord.append([i, j])
+
+        saver = tf.train.Saver()
+        saver.restore(sess, save_models_dir + 'reinforcement_pnet/pnet_train.ckpt')
+        print 'restore model 2'
+        for i in range(i_total):
+            for j in range(j_total):
+
+                image_data = copy.copy(image[i * search_stride:i * search_stride + i_w,
+                                       j * search_stride:j * search_stride + j_w, 0:3])
+
+                image_data = transform.resize(image_data, numpy.array(scan_wnd_size))
+                image_data = numpy.array(image_data, dtype=float)
+                image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
+                y_predict = y_conv.eval({x: image_data}, sess)
+
+                if y_predict[0][0] > y_predict[0][1]:
+                    model_two_coord.append([i, j])
+
+        for one_coord in model_one_coord:
+            for two_coord in model_two_coord:
+                if one_coord == two_coord:
+                    rect = mpatches.Rectangle((one_coord[1] * search_stride, one_coord[0] * search_stride), j_w, i_w,
                                               fill=False, edgecolor='red', linewidth=2)
 
-                    # image_data = image_data.reshape(scan_wnd_size[0] * scan_wnd_size[1], 3)
-                    #
-                    # false_image_list.append(copy.copy(image_data))
-#
-                    # count += 1
-#
                     ax.add_patch(rect)
-                    # if count % 50 == 0:
-                    #     false_image_data = numpy.array(false_image_list)
-                    #     print false_image_data.shape
-                    #     numpy.save('../array train dataset/'
-                    #                'reinforcement_false_image_%dx%d/'
-                    #                'false_image_id%d_%dx%d.npy' %
-                    #     (scan_wnd_size[0], scan_wnd_size[1], file_count,
-                    #      scan_wnd_size[0], scan_wnd_size[1]), false_image_data)
-                    #     false_image_list = []
-                    #     file_count += 1
-#
-#
+
+
         plt.show()
-#
-#
-# false_image_data = numpy.array(false_image_list)
-# print false_image_data.shape
-# numpy.save('false_image_%dx%d'%(scan_wnd_size[0], scan_wnd_size[1]), false_image_data)
-
-
-
-
-    # count = 0
-    # for i in range(100):
-    #     y_predict = y_conv.eval({x: image_data}, sess)
-    #     if y_predict[0][0] > y_predict[0][1]:
-    #         count += 1
-
-    # y_predict = y_conv.eval({x: image_data}, sess)
-    #
-    # print y_predict
-
-# ## PNET Part Finishes
 # ##############

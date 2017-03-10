@@ -78,4 +78,4 @@ if __name__ == '__main__':
 
     count = 0
     for test_pic in test_pics:
-        wrapup_save_fish(images_folder + 'img_00966.jpg', 'img_00966', '../find test fish/')
+        wrapup_save_fish(images_folder + test_pic, test_pic, '../find test fish/')

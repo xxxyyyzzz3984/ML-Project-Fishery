@@ -1,8 +1,5 @@
 
-# coding: utf-8
-
-# In[1]:
-
+from skimage import io, transform
 import os
 import time
 import numpy as np
@@ -18,18 +15,16 @@ import glob
 import math
 import pickle
 import collections
-get_ipython().magic('matplotlib inline')
 
 
-# In[2]:
 
-validation = pickle.load( open('/Users/Shuyuan/Desktop/NCFM/saved_model/second_one/validation.p', "rb" ) )
+# validation = pickle.load( open('/Users/Shuyuan/Desktop/NCFM/saved_model/second_one/validation.p', "rb" ) )
 
 
 # In[3]:
 
 # validation set
-X_val = np.asarray(validation[1])
+# X_val = np.asarray(validation[1])
 
 
 # In[4]:
@@ -57,7 +52,7 @@ def max_pool_3x3(x):
 #sess = tf.InteractiveSession()
 x  = tf.placeholder("float", shape=[None, 48, 48, 3])
 y_ = tf.placeholder("float", shape=[None, 7])
-x_image = tf.reshape(x, [-1,48,48,3])
+x_image = tf.reshape(x, [-1, 48, 48,3])
 
 # convolutional layers
 W_conv1 = weight_variable([5, 5, 3, 52])
@@ -93,73 +88,64 @@ h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob) # kill some neuron
 # Readout Layer
 W_fc2 = weight_variable([128, 7])
 b_fc2 = bias_variable([7])
-y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
-
-W_fc2 = weight_variable([128, 7])
-b_fc2 = bias_variable([7])
 y_conv=tf.nn.softmax(tf.matmul(h_fc1, W_fc2) + b_fc2)
+sess = tf.InteractiveSession()
 
-# training
-cross_entropy = -tf.reduce_sum(y_*tf.log(y_conv))
-train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+tf.global_variables_initializer().run()
 
-
-# In[60]:
-
-save_models_dir = '/Users/Shuyuan/Desktop/NCFM/saved_model/second_one/save/11/'
+save_models_dir = 'Fish_Classifier/'
 
 
-# In[61]:
+test_imagepath = '../../cropped train dataset/BET/2600.jpg'
 
-saver = tf.train.Saver()
 with tf.Session() as sess:
-    saver.restore(sess, save_models_dir + 'fish_classification.ckpt')    
-    validation_pred = y_conv.eval({x: X_val}, sess) 
+    saver = tf.train.Saver()
+    saver.restore(sess,  './fish_classification.ckpt')
+    image = io.imread(test_imagepath)
+    image_data = transform.resize(image, [48, 48])
+    image_data = image_data.reshape([1, 48, 48, 3])
+
+    validation_pred = y_conv.eval({x: image_data}, sess)
+
+    print validation_pred
 
 
-# In[62]:
-
-folders = ['ALB', 'BET', 'DOL', 'LAG', 'OTHER', 'SHARK', 'YFT']
-Y_val = np.asarray(validation[2])
-X_id_val = validation[0]
-label_val = validation[3]
-
-
-# In[63]:
-
-predict_result = np.array(validation_pred)
-score = sum(-sum(Y_val*np.log(predict_result))/len(predict_result))
-
-correct_prediction = np.equal(np.argmax(predict_result,axis = 1), np.argmax(Y_val,axis = 1)) 
-correct_count = collections.Counter(correct_prediction)
-accuracy = correct_count[True]/len(correct_prediction)
-
-print('The score is:', score,'The accuracy is:', accuracy)
+# folders = ['ALB', 'BET', 'DOL', 'LAG', 'OTHER', 'SHARK', 'YFT']
+# Y_val = np.asarray(validation[2])
+# X_id_val = validation[0]
+# label_val = validation[3]
+#
+#
+# # In[63]:
+#
+# predict_result = np.array(validation_pred)
+# score = sum(-sum(Y_val*np.log(predict_result))/len(predict_result))
+#
+# correct_prediction = np.equal(np.argmax(predict_result,axis = 1), np.argmax(Y_val,axis = 1))
+# correct_count = collections.Counter(correct_prediction)
+# accuracy = correct_count[True]/len(correct_prediction)
+#
+# print('The score is:', score, 'The accuracy is:', accuracy)
 
 
-# In[64]:
+# # In[64]:
+#
+# df = pd.DataFrame(validation_pred,index=X_id_val, columns = folders )
+# df['ground_truth'] = label_val
+# df['T/F'] = correct_prediction
+#
+#
+# # In[66]:
+#
+# df.sort_index(inplace=True)
+#
+#
+#
+# df.head(20)
+#
+#
+# df.to_csv('/Users/Shuyuan/Desktop/fish_validation.csv', sep =',')
 
-df = pd.DataFrame(validation_pred,index=X_id_val, columns = folders )
-df['ground_truth'] = label_val
-df['T/F'] = correct_prediction
-
-
-# In[66]:
-
-df.sort_index(inplace=True)
-
-
-# In[67]:
-
-df.head(20)
-
-
-# In[68]:
-
-df.to_csv('/Users/Shuyuan/Desktop/fish_validation.csv', sep =',')
-
-
-# In[ ]:
 
 
 

@@ -7,7 +7,7 @@ import copy
 
 
 fish_label_strs = ['n01440764', 'n01443537', 'n01484850', 'n01491361', 'n01494475',
-               'n02607072', 'n02641379', 'n02643566', 'n01496331']
+               'n02607072', 'n02641379', 'n02643566', 'n01496331', 'n02536864', 'n02066245']
 
 prob_thresh = 0.1
 
@@ -138,6 +138,7 @@ def find_fish_vgg(image_path, image_name, save_root_dir):
                 count += 1
 
                 has_fish = True
+
 
     return has_fish
 

@@ -94,7 +94,7 @@ def max_pool_3x3(x):
 # ##############
 scan_wnd_size = [48, 48]
 
-def find_fish_onet(image_path, image_name, save_root_dir):
+def find_save_fish_onet(image_path, image_name, save_root_dir):
     x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
     y_ = tf.placeholder(tf.float32, [None, 2])
 
@@ -193,3 +193,65 @@ def find_fish_onet(image_path, image_name, save_root_dir):
                 os.system('mkdir ' + mkdir_save_root_dir + image_name + '/')
                 io.imsave(save_root_dir + image_name + '/' + str(count) + '.jpg', image_data)
                 count += 1
+
+
+def pre_screen_is_fish(image_path):
+    x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
+    y_ = tf.placeholder(tf.float32, [None, 2])
+
+    x_image = tf.reshape(x, [-1, scan_wnd_size[0], scan_wnd_size[1], 3], name='image_pnet')
+
+    W_conv1 = weight_variable([3, 3, 3, 32], name='wconv1_pnet')
+    b_conv1 = bias_variable([32], name='bconv1_pnet')
+    h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
+    h_pool1 = max_pool_3x3(h_conv1)  ## one layer 3x3 max pooling
+
+    W_conv2 = weight_variable([3, 3, 32, 64], name='wconv2_pnet')
+    b_conv2 = bias_variable([64], name='bconv2_pnet')
+    h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
+    h_pool2 = max_pool_3x3(h_conv2)  ## one layer 2x2 max pooling
+
+    W_conv3 = weight_variable([3, 3, 64, 64], name='wconv3_pnet')
+    b_conv3 = bias_variable([64], name='bconv3_pnet')
+    h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
+    h_pool3 = max_pool_2x2(h_conv3)  ## one layer 2x2 max pooling
+
+    W_conv4 = weight_variable([2, 2, 64, 128], name='wconv4_pnet')
+    b_conv4 = bias_variable([128], name='bconv4_pnet')
+    h_conv4 = tf.nn.relu(conv2d(h_pool3, W_conv4) + b_conv4)
+
+    ## fully connected
+    W_fc1 = weight_variable([3 * 3 * 128, 256], name='wfc1_pnet')
+    b_fc1 = bias_variable([256], name='bfc1_pnet')
+
+    h_pool2_flat = tf.reshape(h_conv4, [-1, 3 * 3 * 128])
+    h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+
+    keep_prob = tf.placeholder(tf.float32)
+
+    W_fc2 = weight_variable([256, 2], name='wfc2_pnet')
+    b_fc2 = bias_variable([2], name='bfc2_pnet')
+
+    y_conv = tf.matmul(h_fc1, W_fc2) + b_fc2
+
+    sess = tf.InteractiveSession()
+    tf.global_variables_initializer().run()
+
+    with tf.Session() as sess:
+        saver = tf.train.Saver()
+        saver.restore(sess, 'Onet_Fish_Detector/reinforceonet_findfish_train.ckpt')
+        print 'model restored'
+
+        image = io.imread(image_path)
+        image_data = transform.resize(image, numpy.array(scan_wnd_size))
+        image_data = numpy.array(image_data, dtype=float)
+        image_data = image_data.reshape(1, scan_wnd_size[0] * scan_wnd_size[1], 3)
+
+        y_predict = y_conv.eval({x: image_data}, sess)
+
+        ## This is not a fish
+        if y_predict[0][1] > y_predict[0][0]:
+            return False
+
+        else:
+            return True

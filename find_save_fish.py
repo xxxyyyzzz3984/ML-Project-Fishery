@@ -42,27 +42,26 @@ def wrapup_save_fish(image_path, image_name, save_root_dir):
                 print 'false fish, deleting...'
                 os.remove(vgg_find_imgpath)
 
+        vgg_find_imgs = [f for f in listdir(save_root_dir + test_pic_name)
+                         if isfile(join(save_root_dir + test_pic_name, f))]
 
-    vgg_find_imgs = [f for f in listdir(save_root_dir + test_pic_name)
-                     if isfile(join(save_root_dir + test_pic_name, f))]
-
-    # no fish left
-    if len(vgg_find_imgs) < 1:
-        print 'Using NOF Fish Detector 2'
-        from NoF_Detector.NoF_Detector import predict_has_fish
-        has_fish_nof = predict_has_fish(image_path)
-        tf.reset_default_graph()
-
-        if not has_fish_nof:
-            print 'Really no fish, Skip!'
-            pass
-
-        else:
-            print 'Using Onet Fish Detector 2'
-            from Onet_Fish_Detector.Onet_Detector import find_save_fish_onet
-            test_pic_name = image_name.replace('.jpg', '').replace('.png', '')
-            find_save_fish_onet(image_path, test_pic_name, save_root_dir)
+        # no fish left
+        if len(vgg_find_imgs) < 1:
+            print 'Using NOF Fish Detector 2'
+            from NoF_Detector.NoF_Detector import predict_has_fish
+            has_fish_nof = predict_has_fish(image_path)
             tf.reset_default_graph()
+
+            if not has_fish_nof:
+                print 'Really no fish, Skip!'
+                pass
+
+            else:
+                print 'Using Onet Fish Detector 2'
+                from Onet_Fish_Detector.Onet_Detector import find_save_fish_onet
+                test_pic_name = image_name.replace('.jpg', '').replace('.png', '')
+                find_save_fish_onet(image_path, test_pic_name, save_root_dir)
+                tf.reset_default_graph()
 
 
 if __name__ == '__main__':

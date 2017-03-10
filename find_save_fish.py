@@ -1,7 +1,9 @@
 import argparse
 import os
 import tensorflow as tf
-from Pretrained_VGG_Fish_Detector.vgg16_fish_detector import find_fish_vgg
+import time
+
+from Pretrained_VGG_Fish_Detector.vgg16_findfish_detector_slidewnd import find_fish_vgg
 from os import listdir
 from os.path import isfile, join
 
@@ -77,4 +79,9 @@ if __name__ == '__main__':
 
     count = 0
     for test_pic in test_pics:
-        wrapup_save_fish(images_folder + test_pic, test_pic, '../find test fish/')
+        while True:
+            try:
+                wrapup_save_fish(images_folder + test_pic, test_pic, '../find test fish/')
+                break
+            except:
+                time.sleep(10)

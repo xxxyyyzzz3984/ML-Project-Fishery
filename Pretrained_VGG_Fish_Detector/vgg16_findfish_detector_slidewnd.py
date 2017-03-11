@@ -67,7 +67,7 @@ def non_max_suppression_fast(boxes, overlapThresh):
     # integer data type
     return boxes[pick].astype("int")
 
-def find_fish_vgg(image_path, image_name, save_root_dir):
+def find_fish_vgg_slidewnd(image_path, image_name, save_root_dir):
 
     has_fish = False
 

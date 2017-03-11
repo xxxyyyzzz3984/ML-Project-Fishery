@@ -95,6 +95,7 @@ def max_pool_3x3(x):
 scan_wnd_size = [48, 48]
 
 def find_save_fish_onet(image_path, image_name, save_root_dir):
+    has_fish = False
     x = tf.placeholder(tf.float32, shape=[None, scan_wnd_size[0] * scan_wnd_size[1], 3])
     y_ = tf.placeholder(tf.float32, [None, 2])
 
@@ -193,6 +194,9 @@ def find_save_fish_onet(image_path, image_name, save_root_dir):
                 os.system('mkdir ' + mkdir_save_root_dir + image_name + '/')
                 io.imsave(save_root_dir + image_name + '/' + str(count) + '.jpg', image_data)
                 count += 1
+
+                has_fish = True
+    return has_fish
 
 
 def pre_screen_is_fish(image_path):

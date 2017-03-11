@@ -17,7 +17,6 @@ import PIL
 import glob
 import math
 import pickle
-get_ipython().magic('matplotlib inline')
 
 
 # In[2]:
@@ -105,10 +104,7 @@ h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob) # kill some neuron
 # Readout Layer
 W_fc2 = weight_variable([128, 7])
 b_fc2 = bias_variable([7])
-y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 
-W_fc2 = weight_variable([128, 7])
-b_fc2 = bias_variable([7])
 y_conv=tf.nn.softmax(tf.matmul(h_fc1, W_fc2) + b_fc2)
 
 

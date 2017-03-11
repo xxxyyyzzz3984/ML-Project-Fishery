@@ -94,7 +94,6 @@ def find_fish_vgg(image_path, image_name, save_root_dir):
                   (test_pic_path, i, search_stride, j_w)
 
         results_raw_list = commands.getstatusoutput(command)[1].split('\n')
-        print results_raw_list
         labels = []
         probs = []
         for result_raw in results_raw_list:

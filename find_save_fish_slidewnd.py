@@ -9,7 +9,7 @@ def wrapup_save_fish(image_path, image_name, save_root_dir):
     test_pic_name = image_name.replace('.jpg', '').replace('.png', '')
     has_fish_vgg = find_fish_vgg(image_path, test_pic_name, save_root_dir)
     if not has_fish_vgg:
-        system('mkdir ' + save_root_dir + image_name + '/')
+        system('mkdir ' + save_root_dir + test_pic_name + '/')
 
 
 if __name__ == '__main__':

@@ -82,44 +82,50 @@ def find_fish_vgg(image_path, image_name, save_root_dir):
 
     i_total = image.shape[0] / search_stride
     j_total = image.shape[1] / search_stride
-    candidates = set()
-    for i in range(i_total):
-        for j in range(j_total):
-            x_rect = j * search_stride
-            y_rect = i * search_stride
-            w = i_w
-            h = j_w
-            candidates.add(copy.copy((x_rect, y_rect, w, h)))
-
-
     count = 1
-    print 'Performin sliding window detection'
-    for x_rect, y_rect, w, h in candidates:
-        command = 'python Pretrained_VGG_Fish_Detector/vgg16_findfish.py' \
-                  ' -i %s -x %d -y %d -wr %d -hr %d' % \
-                  (test_pic_path, x_rect, y_rect, w, h)
 
-        results_parts = commands.getstatusoutput(command)[1].split('\n')
-        result_str = results_parts[len(results_parts)-1]
+    for i in range(i_total):
 
-        result_parts = result_str.split(',')
-        label = result_parts[1][2:11]
-        prob = float(result_parts[len(result_parts) - 1].replace(')', ''))
+        print 'Performin sliding window detection'
 
-        print label
-        print prob
-        print
 
-        if label in fish_label_strs:
-            if prob >= prob_thresh:
-                image_data = copy.copy(image[y_rect:y_rect + h, x_rect:x_rect + w, 0:3])
-                mkdir_save_root_dir = save_root_dir.replace(' ', '\ ')
-                os.system('mkdir ' + mkdir_save_root_dir + image_name + '/')
-                io.imsave(save_root_dir + image_name + '/' + str(count) + '.jpg', image_data)
-                count += 1
+        command = 'python Pretrained_VGG_Fish_Detector/vgg16_findfish_slidewnd.py' \
+                  ' -i %s -ti %d -ss %d -w %d' % \
+                  (test_pic_path, i, search_stride, j_w)
 
-                has_fish = True
+        results_raw_list = commands.getstatusoutput(command)[1].split('\n')
+        print results_raw_list
+        labels = []
+        probs = []
+        for result_raw in results_raw_list:
+            if 'Top1' in result_raw:
+                result_parts = result_raw.split(',')
+                label = result_parts[1][2:11]
+                prob = float(result_parts[len(result_parts) - 1].replace(')', ''))
 
+                labels.append(label)
+                probs.append(prob)
+
+        print j_total
+        for j in range(j_total):
+            try:
+                image_data = copy.copy(image[j * search_stride:j * search_stride + j_w,
+                                       i * search_stride:i * search_stride + i_w, 0:3])
+                transform.resize(image_data, [224, 224])
+
+                label = labels[j]
+                prob = probs[j]
+
+                if label in fish_label_strs:
+                    if prob >= prob_thresh:
+                        mkdir_save_root_dir = save_root_dir.replace(' ', '\ ')
+                        os.system('mkdir ' + mkdir_save_root_dir + image_name + '/')
+                        io.imsave(save_root_dir + image_name + '/' + str(count) + '.jpg', image_data)
+                        count += 1
+                        has_fish = True
+
+            except:
+                continue
 
     return has_fish
 

@@ -1,5 +1,5 @@
 import argparse
-from Pretrained_VGG_Fish_Detector.vgg16_findfish_detector_slidewnd import find_fish_vgg
+from Pretrained_VGG_Fish_Detector.vgg16_findfish_detector_slidewnd import find_fish_vgg_slidewnd
 from os import listdir, system
 from os.path import isfile, join
 
@@ -7,7 +7,7 @@ def wrapup_save_fish(image_path, image_name, save_root_dir):
     print 'Processing image ' + image_name
     print 'Using VGG Fish Detector'
     test_pic_name = image_name.replace('.jpg', '').replace('.png', '')
-    has_fish_vgg = find_fish_vgg(image_path, test_pic_name, save_root_dir)
+    has_fish_vgg = find_fish_vgg_slidewnd(image_path, test_pic_name, save_root_dir)
     if not has_fish_vgg:
         save_root_dir = save_root_dir.replace(' ', '\ ')
         system('mkdir ' + save_root_dir + test_pic_name + '/')

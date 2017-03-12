@@ -1,48 +1,7 @@
-
-# coding: utf-8
-
-# In[1]:
-
-import os
-import time
-import numpy as np
-from matplotlib import pyplot as plt
-import matplotlib.image as mpimg
-import pandas as pd
+import numpy
+import copy
 import tensorflow as tf
-import shutil
-from scipy.signal import convolve2d
-from PIL import Image
-import PIL
-import glob
-import math
-import pickle
 
-
-# In[2]:
-
-train = pickle.load( open('/Users/Shuyuan/Desktop/NCFM/saved_model/second_one/train.p', "rb" ) )
-
-
-# In[3]:
-
-validation = pickle.load( open('/Users/Shuyuan/Desktop/NCFM/saved_model/second_one/validation.p', "rb" ) )
-
-
-# In[4]:
-
-X = np.asarray(train[1])
-Y = np.asarray(train[2])
-X_id = train[0]
-label = train[3]
-# validation set
-X_val = np.asarray(validation[1])
-Y_val = np.asarray(validation[2])
-X_id_val = validation[0]
-label_val = validation[3]
-
-
-# In[5]:
 
 def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev=0.1)
@@ -56,45 +15,198 @@ def conv2d(x, W):
     return tf.nn.conv2d(x, W, strides=[1, 1, 1, 1], padding='SAME')
 
 def max_pool_2x2(x):
-    return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],strides=[1, 2, 2, 1], padding='SAME')
+    return tf.nn.max_pool(x, ksize=[1, 2, 2, 1], strides=[1, 1, 1, 1], padding='SAME')
 
 def max_pool_3x3(x):
+    return tf.nn.max_pool(x, ksize=[1, 3, 3, 1],strides=[1, 1, 1, 1], padding='SAME')
+
+def conv2d_reduce(x, W):
+    return tf.nn.conv2d(x, W, strides=[1, 2, 2, 1], padding='SAME')
+
+def max_pool_2x2_reduce(x):
+    return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],strides=[1, 2, 2, 1], padding='SAME')
+
+def max_pool_3x3_reduce(x):
     return tf.nn.max_pool(x, ksize=[1, 3, 3, 1],strides=[1, 3, 3, 1], padding='SAME')
 
+#########loading data##########
+target_wnd_size = [220, 220]
 
-# In[6]:
+data_dir = '../../array train dataset/fish types/%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
+ALB_data = numpy.load(data_dir + 'ALB.npy')
+BET_data = numpy.load(data_dir + 'BET.npy')
+DOL_data = numpy.load(data_dir + 'DOL.npy')
+LAG_data = numpy.load(data_dir + 'LAG.npy')
+OTHER_data = numpy.load(data_dir + 'OTHER.npy')
+SHARK_data = numpy.load(data_dir + 'SHARK.npy')
+YFT_data = numpy.load(data_dir + 'YFT.npy')
 
-#sess = tf.InteractiveSession()
-x  = tf.placeholder("float", shape=[None, 48, 48, 3])
+y_data_list = []
+
+x_data = ALB_data
+for i in range(ALB_data.shape[0]):
+    y_data_list.append(numpy.array([1, 0, 0, 0, 0, 0, 0]))
+
+# for i in range(7):
+x_data = numpy.concatenate((x_data, BET_data))
+for j in range(BET_data.shape[0]):
+    y_data_list.append(numpy.array([0, 1, 0, 0, 0, 0, 0]))
+
+# for i in range(18):
+x_data = numpy.concatenate((x_data, DOL_data))
+for j in range(DOL_data.shape[0]):
+    y_data_list.append(numpy.array([0, 0, 1, 0, 0, 0, 0]))
+
+# for i in range(20):
+x_data = numpy.concatenate((x_data, LAG_data))
+for j in range(LAG_data.shape[0]):
+    y_data_list.append(numpy.array([0, 0, 0, 1, 0, 0, 0]))
+
+# for i in range(6):
+x_data = numpy.concatenate((x_data, OTHER_data))
+for j in range(OTHER_data.shape[0]):
+    y_data_list.append(numpy.array([0, 0, 0, 0, 1, 0, 0]))
+
+# for i in range(10):
+x_data = numpy.concatenate((x_data, SHARK_data))
+for j in range(SHARK_data.shape[0]):
+    y_data_list.append(numpy.array([0, 0, 0, 0, 0, 1, 0]))
+
+# for i in range(2):
+x_data = numpy.concatenate((x_data, YFT_data))
+for j in range(YFT_data.shape[0]):
+    y_data_list.append(numpy.array([0, 0, 0, 0, 0, 0, 1]))
+
+y_data = numpy.array(y_data_list, dtype=float)
+
+print x_data.shape
+print y_data.shape
+
+####shuffle
+for i in range(x_data.shape[0]/2):
+    if i % 2 == 0:
+        j = x_data.shape[0]
+
+        x_tmp = copy.copy(x_data[i])
+        x_data[i] = copy.copy(x_data[j-i-1])
+        x_data[j-i-1] = copy.copy(x_tmp)
+
+        y_tmp = copy.copy(y_data[i])
+        y_data[i] = copy.copy(y_data[j - i - 1])
+        y_data[j - i - 1] = copy.copy(y_tmp)
+#########
+
+##############
+## ONET
+##############
+# x = tf.placeholder("float", shape=[None, 48 * 48, 3])
+# y_ = tf.placeholder("float", shape=[None, 7])
+# x_image = tf.reshape(x, [-1, 48, 48, 3])
+#
+# # convolutional layers
+# W_conv1 = weight_variable([3, 3, 3, 32])
+# b_conv1 = bias_variable([32])
+# h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
+# h_pool1 = max_pool_3x3(h_conv1)  ## one layer 3x3 max pooling
+#
+# W_conv2 = weight_variable([3, 3, 32, 64])
+# b_conv2 = bias_variable([64])
+# h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
+# h_pool2 = max_pool_3x3(h_conv2)  ## one layer 2x2 max pooling
+#
+# W_conv3 = weight_variable([3, 3, 64, 64])
+# b_conv3 = bias_variable([64])
+# h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
+# h_pool3 = max_pool_2x2(h_conv3)  ## one layer 2x2 max pooling
+#
+# W_conv4 = weight_variable([3, 3, 64, 128])
+# b_conv4 = bias_variable([128])
+# h_conv4 = tf.nn.relu(conv2d(h_pool3, W_conv4) + b_conv4)
+#
+#
+# # fully connected layer
+# W_fc1 = weight_variable([3 * 3 * 128, 256])
+# b_fc1 = bias_variable([256])
+#
+# h_pool2_flat = tf.reshape(h_conv4, [-1, 3 * 3 * 128])  # flat into 1 dimention
+# h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+#
+# # dropout
+# keep_prob = tf.placeholder("float")
+# h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob) # kill some neuron
+#
+# # Readout Layer
+# W_fc2 = weight_variable([256, 7])
+# b_fc2 = bias_variable([7])
+#
+# y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
+#######################
+
+##################
+## FaceNet
+##################
+wnd_size = [220, 220]
+x = tf.placeholder("float", shape=[None, wnd_size[0] * wnd_size[1], 3])
 y_ = tf.placeholder("float", shape=[None, 7])
-x_image = tf.reshape(x, [-1,48,48,3])
+x_image = tf.reshape(x, [-1, wnd_size[0], wnd_size[1], 3])
 
-# convolutional layers
-W_conv1 = weight_variable([5, 5, 3, 52])
-b_conv1 = bias_variable([52])
-h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
-h_pool1 = max_pool_3x3(h_conv1)  ## one layer 3x3 max pooling
+#######convolution layers
+####layer 1
+W_conv1 = weight_variable([7, 7, 3, 64])
+b_conv1 = bias_variable([64])
+h_conv1 = tf.nn.relu(conv2d_reduce(x_image, W_conv1) + b_conv1)
+h_pool1 = max_pool_2x2_reduce(h_conv1)  ## one layer 2x2 max pooling
+h_norm1 = tf.contrib.layers.batch_norm(h_pool1)
 
-W_conv2 = weight_variable([5, 5, 52, 64])
-b_conv2 = bias_variable([64])
-h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
-h_pool2 = max_pool_2x2(h_conv2)  ## one layer 2x2 max pooling
+####layer 2
+W_conv2a = weight_variable([1, 1, 64, 64])
+b_conv2a = bias_variable([64])
+h_conv2a = tf.nn.relu(conv2d(h_norm1, W_conv2a) + b_conv2a)
+W_conv2 = weight_variable([3, 3, 64, 192])
+b_conv2 = bias_variable([192])
+h_conv2 = tf.nn.relu(conv2d(h_conv2a, W_conv2) + b_conv2)
+h_norm2 = tf.contrib.layers.batch_norm(h_conv2)
+h_pool2 = max_pool_2x2_reduce(h_norm2)  ## one layer 2x2 max pooling
 
-W_conv3 = weight_variable([3, 3, 64, 64])
-b_conv3 = bias_variable([64])
-h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
-h_pool3 = max_pool_2x2(h_conv3)  ## one layer 2x2 max pooling
+###layer 3
+W_conv3a = weight_variable([1, 1, 192, 192])
+b_conv3a = bias_variable([192])
+h_conv3a = tf.nn.relu(conv2d(h_pool2, W_conv3a) + b_conv3a)
+W_conv3 = weight_variable([3, 3, 192, 384])
+b_conv3 = bias_variable([384])
+h_conv3 = tf.nn.relu(conv2d(h_conv3a, W_conv3) + b_conv3)
+h_pool3 = max_pool_2x2_reduce(h_conv3)
 
-W_conv4 = weight_variable([3, 3, 64, 128])
-b_conv4 = bias_variable([128])
-h_conv4 = tf.nn.relu(conv2d(h_pool3, W_conv4) + b_conv4)
+###layer 4
+W_conv4a = weight_variable([1, 1, 384, 384])
+b_conv4a = bias_variable([384])
+h_conv4a = tf.nn.relu(conv2d(h_pool3, W_conv4a) + b_conv4a)
+W_conv4 = weight_variable([3, 3, 384, 256])
+b_conv4 = bias_variable([256])
+h_conv4 = tf.nn.relu(conv2d(h_conv4a, W_conv4) + b_conv4)
 
+###layer 5
+W_conv5a = weight_variable([1, 1, 256, 256])
+b_conv5a = bias_variable([256])
+h_conv5a = tf.nn.relu(conv2d(h_conv4, W_conv5a) + b_conv5a)
+W_conv5 = weight_variable([3, 3, 256, 256])
+b_conv5 = bias_variable([256])
+h_conv5 = tf.nn.relu(conv2d(h_conv5a, W_conv5) + b_conv5)
 
-# fully connected layer
-W_fc1 = weight_variable([4 * 4 * 128, 128])  
+####layer 6
+W_conv6a = weight_variable([1, 1, 256, 256])
+b_conv6a = bias_variable([256])
+h_conv6a = tf.nn.relu(conv2d(h_conv5, W_conv6a) + b_conv6a)
+W_conv6 = weight_variable([3, 3, 256, 256])
+b_conv6 = bias_variable([256])
+h_conv6 = tf.nn.relu(conv2d(h_conv6a, W_conv6) + b_conv6)
+h_pool6 = max_pool_2x2_reduce(h_conv3)
+
+### fully connected layer
+W_fc1 = weight_variable([7 * 7 * 256, 128])
 b_fc1 = bias_variable([128])
- 
-h_pool2_flat = tf.reshape(h_conv4, [-1, 4 * 4 * 128])  # flat into 1 dimention
+
+h_pool2_flat = tf.reshape(h_conv4, [-1, 7 * 7 * 256])  # flat into 1 dimention
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
 # dropout
@@ -105,63 +217,105 @@ h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob) # kill some neuron
 W_fc2 = weight_variable([128, 7])
 b_fc2 = bias_variable([7])
 
-y_conv=tf.nn.softmax(tf.matmul(h_fc1, W_fc2) + b_fc2)
+y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
+
+###########training part
+sess = tf.InteractiveSession()
+tf.global_variables_initializer().run()
+
+cross_entropy = tf.reduce_mean(
+    tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv) +
+    tf.nn.softmax_cross_entropy_with_logits(labels=1-y_, logits=1-y_conv))
 
 
-# In[7]:
-
-# training
-#cross_entropy = tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(y_conv, y_))
-cross_entropy = -tf.reduce_sum(y_*tf.log(y_conv))
-train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
-
-# Evaluating the Model
-correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1)) 
-accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+mse = tf.reduce_mean(tf.square(y_-y_conv))
 
 
-# In[27]:
+correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-save_models_dir = '/Users/Shuyuan/Desktop/NCFM/saved_model/second_one/save/'
-sess = tf.Session()
+train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
+
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
-saver.restore(sess, '/Users/Shuyuan/Desktop/NCFM/saved_model/second_one/save/10/fish_classification.ckpt')
-batch_sz = 50
-i  = 0
-j = 0
-print('j = ',j)
+#
+# saver.restore(sess, './onet_train.ckpt')
+# print("Model restored.")
+step = 0
+batch_i = 0
+min_acc = 2.0
+max_acc = 0.0
+total_acc = 0
+avg_acc = 0
+stride = 50
 while True:
-    if j > 5:       
-        print('The loop is finished...')
+
+    if batch_i*stride == x_data.shape[0]/2:
+        avg_acc = float(total_acc) / batch_i
+
+        print 'minimum accuracy is %f' % min_acc
+        print 'maximum accuracy is %f' % max_acc
+        print 'average accuracy is %f' % avg_acc
+        print 'Save model'
+        print
+
+        save_path = saver.save(sess, save_path= './onet_train.ckpt')
+
+
+    if batch_i*stride > x_data.shape[0]:
+        avg_acc = float(total_acc) / batch_i
+
+        print 'minimum accuracy is %f' % min_acc
+        print 'maximum accuracy is %f' % max_acc
+        print 'average accuracy is %f' % avg_acc
+        print 'Save model'
+        print
+
+        save_path = saver.save(sess, save_path= './onet_train.ckpt')
+
+        if min_acc > 0.99:
+            print 'loading new data.......'
+            print 'Save model'
+            print min_acc
+
+        step = 0
+        batch_i = 0
+        min_acc = 2.0
+        max_acc = 0.0
+        total_acc = 0
+        avg_acc = 0
+
+
+    x_data_batch = x_data[batch_i*stride: batch_i*stride+stride, 0: 48 * 48, 0:3]
+    y_data_batch = y_data[batch_i*stride:batch_i*stride+stride, 0:7]
+
+    train_step.run({y_: y_data, x: x_data, keep_prob: 0.5}, sess)
+
+    e = sess.run(cross_entropy, feed_dict={y_: y_data, x: x_data, keep_prob: 1.0})
+    train_accuracy = accuracy.eval(feed_dict={y_: y_data, x: x_data, keep_prob: 1.0})
+
+    if min_acc > train_accuracy:
+        min_acc = train_accuracy
+
+    if max_acc < train_accuracy:
+        max_acc = train_accuracy
+
+    total_acc += train_accuracy
+
+    print train_accuracy
+    print e
+    print
+
+    batch_i += 1
+    step += 1
+
+    if train_accuracy > 0.99:
+        print 'save model'
+        save_path = saver.save(sess, save_path= './onet_train.ckpt')
         break
-        
-    if i * batch_sz > X.shape[0]:
-        i = 0
-        j += 1
-        print('j = ',j)
-                
-    xs = X[i*batch_sz:(i*batch_sz + batch_sz),]
-    ys = Y[i*batch_sz:(i*batch_sz + batch_sz),]
-    
-    if i%10 == 0:
-        train_entropy = sess.run( cross_entropy, feed_dict={x:xs, y_: ys, keep_prob: 1.0})
-        print("step %d, cross entropy %g"%(i, train_entropy))
-        
-    sess.run(train_step,feed_dict={x: xs, y_: ys, keep_prob: 0.5})
-    
-    i += 1
-    if j%2 == 0 and i == 131:
-        basic = str(j + 11)
-        path = os.path.join(save_models_dir, basic)
-        os.mkdir(path)
-        PATH = os.path.join(path, 'fish_classification.ckpt')
-        save_model = saver.save(sess, save_path = PATH)
-        print('result saved')
-        print('This iteration end ....')
-
-
-# In[ ]:
 
 
 
+# ##############
+# ## ONET Part Finishes
+# ##############

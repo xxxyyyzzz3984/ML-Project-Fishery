@@ -55,32 +55,32 @@ for saved_images_path in saved_images_paths:
             max_indexes.append(numpy.argmax(tmp_probs))
             fish_probs_all.append(copy.copy(tmp_probs))
 
-            # if max_prob <= max(tmp_probs):
-            #     max_prob = max(tmp_probs)
-            #     fish_probs = copy.copy(tmp_probs)
+            if max_prob <= max(tmp_probs):
+                max_prob = max(tmp_probs)
+                fish_probs = copy.copy(tmp_probs)
 
 
-        if (not all_same(max_indexes) and 1 in max_indexes
-            and max(fish_probs_all[max_indexes.index(1)]) > 0.9) and \
-                (not all_same(max_indexes) and 6 in max_indexes
-            and max(fish_probs_all[max_indexes.index(6)]) > 0.9):
-
-            for max_index in max_indexes:
-                if max_index != 1 and max_index != 6:
-                    fish_probs = copy.copy(fish_probs_all[max_indexes.index(max_index)])
-                    break
-
-            if len(fish_probs) < 1:
-                for fish_prob_all in fish_probs_all:
-                    if max_prob <= max(fish_prob_all):
-                        max_prob = max(fish_prob_all)
-                        fish_probs = copy.copy(fish_prob_all)
-
-        else:
-            for fish_prob_all in fish_probs_all:
-                if max_prob <= max(fish_prob_all):
-                    max_prob = max(fish_prob_all)
-                    fish_probs = copy.copy(fish_prob_all)
+        # if (not all_same(max_indexes) and 1 in max_indexes
+        #     and max(fish_probs_all[max_indexes.index(1)]) > 0.9) and \
+        #         (not all_same(max_indexes) and 6 in max_indexes
+        #     and max(fish_probs_all[max_indexes.index(6)]) > 0.9):
+        #
+        #     for max_index in max_indexes:
+        #         if max_index != 1 and max_index != 6:
+        #             fish_probs = copy.copy(fish_probs_all[max_indexes.index(max_index)])
+        #             break
+        #
+        #     if len(fish_probs) < 1:
+        #         for fish_prob_all in fish_probs_all:
+        #             if max_prob <= max(fish_prob_all):
+        #                 max_prob = max(fish_prob_all)
+        #                 fish_probs = copy.copy(fish_prob_all)
+        #
+        # else:
+        #     for fish_prob_all in fish_probs_all:
+        #         if max_prob <= max(fish_prob_all):
+        #             max_prob = max(fish_prob_all)
+        #             fish_probs = copy.copy(fish_prob_all)
 
 
         print fish_kinds[numpy.argmax(fish_probs)] + ' fish'

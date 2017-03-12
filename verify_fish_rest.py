@@ -55,7 +55,7 @@ for remain_image in remain_images:
         fish_probs = []
         fish_probs_all = []
         max_indexes = []
-        max_prob = 0
+        max_prob = -1
         for pic_per_image in pics_of_one_image:
             image_path = saved_images_path + pic_per_image
             from Fish_Classifier.fish_classifier import retrieve_prob_list
@@ -66,32 +66,31 @@ for remain_image in remain_images:
             max_indexes.append(numpy.argmax(tmp_probs))
             fish_probs_all.append(copy.copy(tmp_probs))
 
-            # if max_prob <= max(tmp_probs):
-            #     max_prob = max(tmp_probs)
-            #     fish_probs = copy.copy(tmp_probs)
+            if max_prob <= max(tmp_probs):
+                max_prob = max(tmp_probs)
+                fish_probs = copy.copy(tmp_probs)
 
-
-        if (not all_same(max_indexes) and 1 in max_indexes
-            and max(fish_probs_all[max_indexes.index(1)]) > 0.9) and \
-                (not all_same(max_indexes) and 6 in max_indexes
-            and max(fish_probs_all[max_indexes.index(6)]) > 0.9):
-
-            for max_index in max_indexes:
-                if max_index != 1 and max_index != 6:
-                    fish_probs = copy.copy(fish_probs_all[max_indexes.index(max_index)])
-                    break
-
-            if len(fish_probs) < 1:
-                for fish_prob_all in fish_probs_all:
-                    if max_prob <= max(fish_prob_all):
-                        max_prob = max(fish_prob_all)
-                        fish_probs = copy.copy(fish_prob_all)
-
-        else:
-            for fish_prob_all in fish_probs_all:
-                if max_prob <= max(fish_prob_all):
-                    max_prob = max(fish_prob_all)
-                    fish_probs = copy.copy(fish_prob_all)
+        # if (not all_same(max_indexes) and 1 in max_indexes
+        #     and max(fish_probs_all[max_indexes.index(1)]) > 0.9) and \
+        #         (not all_same(max_indexes) and 6 in max_indexes
+        #     and max(fish_probs_all[max_indexes.index(6)]) > 0.9):
+        #
+        #     for max_index in max_indexes:
+        #         if max_index != 1 and max_index != 6:
+        #             fish_probs = copy.copy(fish_probs_all[max_indexes.index(max_index)])
+        #             break
+        #
+        #     if len(fish_probs) < 1:
+        #         for fish_prob_all in fish_probs_all:
+        #             if max_prob <= max(fish_prob_all):
+        #                 max_prob = max(fish_prob_all)
+        #                 fish_probs = copy.copy(fish_prob_all)
+        #
+        # else:
+        #     for fish_prob_all in fish_probs_all:
+        #         if max_prob <= max(fish_prob_all):
+        #             max_prob = max(fish_prob_all)
+        #             fish_probs = copy.copy(fish_prob_all)
 
 
         print fish_kinds[numpy.argmax(fish_probs)] + ' fish'
@@ -102,8 +101,8 @@ for remain_image in remain_images:
         image_info['NoF'] = float(0.0)
 
     writer.writerow([image_info['image'], image_info['ALB'], image_info['BET'], image_info['DOL'],
-             image_info['LAG'], image_info['NoF'], image_info['OTHER'], image_info['SHARK'],
-             image_info['YFT']])
+                     image_info['LAG'], image_info['NoF'], image_info['OTHER'], image_info['SHARK'],
+                     image_info['YFT']])
 
     pic_count += 1
     print 'Finish processing %d fish.' % pic_count

@@ -1,6 +1,6 @@
 import numpy
 import tensorflow as tf
-
+import copy
 
 def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev=0.1)
@@ -30,23 +30,70 @@ def max_pool_3x3_reduce(x):
 
 #########loading data##########
 target_wnd_size = [220, 220]
-file_len = 359
-
 
 data_dir = '../../array train dataset/fish types/%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
-x_data = numpy.empty([0])
-y_data = numpy.empty([0])
-for i in range(file_len):
-    if i == 0:
-        x_data = numpy.load(data_dir + 'img_data_id%d.npy' % (i+1))
-        y_data = numpy.load(data_dir + 'label_id%d.npy' % (i+1))
+ALB_data = numpy.load(data_dir + 'ALB.npy')
+BET_data = numpy.load(data_dir + 'BET.npy')
+DOL_data = numpy.load(data_dir + 'DOL.npy')
+LAG_data = numpy.load(data_dir + 'LAG.npy')
+OTHER_data = numpy.load(data_dir + 'OTHER.npy')
+SHARK_data = numpy.load(data_dir + 'SHARK.npy')
+YFT_data = numpy.load(data_dir + 'YFT.npy')
 
-    else:
-        x_data = numpy.concatenate((x_data, numpy.load(data_dir + 'img_data_id%d.npy' % (i+1))))
-        y_data = numpy.concatenate((y_data, numpy.load(data_dir + 'label_id%d.npy' % (i + 1))))
+y_data_list = []
+
+x_data = ALB_data
+for i in range(ALB_data.shape[0]):
+    y_data_list.append(numpy.array([1, 0, 0, 0, 0, 0, 0]))
+
+for i in range(7):
+    x_data = numpy.concatenate((x_data, BET_data))
+    for j in range(BET_data.shape[0]):
+        y_data_list.append(numpy.array([0, 1, 0, 0, 0, 0, 0]))
+
+for i in range(18):
+    x_data = numpy.concatenate((x_data, DOL_data))
+    for j in range(DOL_data.shape[0]):
+        y_data_list.append(numpy.array([0, 0, 1, 0, 0, 0, 0]))
+
+for i in range(20):
+    x_data = numpy.concatenate((x_data, LAG_data))
+    for j in range(LAG_data.shape[0]):
+        y_data_list.append(numpy.array([0, 0, 0, 1, 0, 0, 0]))
+
+# for i in range(6):
+x_data = numpy.concatenate((x_data, OTHER_data))
+for j in range(OTHER_data.shape[0]):
+    y_data_list.append(numpy.array([0, 0, 0, 0, 1, 0, 0]))
+
+for i in range(10):
+    x_data = numpy.concatenate((x_data, SHARK_data))
+    for j in range(SHARK_data.shape[0]):
+        y_data_list.append(numpy.array([0, 0, 0, 0, 0, 1, 0]))
+
+for i in range(2):
+    x_data = numpy.concatenate((x_data, YFT_data))
+    for j in range(YFT_data.shape[0]):
+        y_data_list.append(numpy.array([0, 0, 0, 0, 0, 0, 1]))
+
+y_data = numpy.array(y_data_list, dtype=float)
 
 print x_data.shape
 print y_data.shape
+
+####shuffle
+for i in range(x_data.shape[0]/2):
+    if i % 2 == 0:
+        j = x_data.shape[0]
+
+        x_tmp = copy.copy(x_data[i])
+        x_data[i] = copy.copy(x_data[j-i-1])
+        x_data[j-i-1] = copy.copy(x_tmp)
+
+        y_tmp = copy.copy(y_data[i])
+        y_data[i] = copy.copy(y_data[j - i - 1])
+        y_data[j - i - 1] = copy.copy(y_tmp)
+#########
 
 ##############
 ## ONET
@@ -240,7 +287,7 @@ while True:
         save_path = saver.save(sess, save_path= './onet_train.ckpt')
 
 
-    if batch_i >= file_len:
+    if batch_i >= 50:
         avg_acc = float(total_acc) / batch_i
 
         print 'minimum accuracy is %f' % min_acc

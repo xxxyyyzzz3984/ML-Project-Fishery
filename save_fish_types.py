@@ -33,8 +33,8 @@ for croppeed_fish_folder in croppeed_fish_folders:
 
     img_array = numpy.array(img_list)
     print img_array.shape
-    numpy.save(croppeed_fish_folder.replace('../cropped train dataset/', '').replace('/', ''),
-               save_dir + img_array)
+    numpy.save(save_dir + croppeed_fish_folder.replace('../cropped train dataset/', '').replace('/', ''),
+                img_array)
 
 
 #     image_paths = []

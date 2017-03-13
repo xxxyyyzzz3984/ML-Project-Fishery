@@ -1,6 +1,4 @@
-import gc
 import numpy
-import copy
 import tensorflow as tf
 
 
@@ -32,9 +30,23 @@ def max_pool_3x3_reduce(x):
 
 #########loading data##########
 target_wnd_size = [220, 220]
+file_len = 359
+
 
 data_dir = '../../array train dataset/fish types/%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
+x_data = numpy.empty([0])
+y_data = numpy.empty([0])
+for i in range(file_len):
+    if i == 0:
+        x_data = numpy.load(data_dir + 'img_data_id%d.npy' % (i+1))
+        y_data = numpy.load(data_dir + 'label_id%d.npy' % (i+1))
 
+    else:
+        x_data = numpy.concatenate((x_data, numpy.load(data_dir + 'img_data_id%d.npy' % (i+1))))
+        y_data = numpy.concatenate((y_data, numpy.load(data_dir + 'label_id%d.npy' % (i + 1))))
+
+print x_data.shape
+print y_data.shape
 
 ##############
 ## ONET
@@ -205,15 +217,14 @@ max_acc = 0.0
 total_acc = 0
 avg_acc = 0
 stride = 50
-file_len = 359
 
 while True:
 
     step += 1
     batch_i += 1
 
-    x_data = numpy.load(data_dir + 'img_data_id%d.npy' % batch_i)
-    y_data = numpy.load(data_dir + 'label_id%d.npy' % batch_i)
+    # x_data = numpy.load(data_dir + 'img_data_id%d.npy' % batch_i)
+    # y_data = numpy.load(data_dir + 'label_id%d.npy' % batch_i)
 
     if batch_i % 10 == 0 or step % 10 == 0:
         avg_acc = float(total_acc) / batch_i

@@ -1,3 +1,4 @@
+import gc
 import numpy
 import copy
 import tensorflow as tf
@@ -27,74 +28,13 @@ def max_pool_2x2_reduce(x):
     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],strides=[1, 2, 2, 1], padding='SAME')
 
 def max_pool_3x3_reduce(x):
-    return tf.nn.max_pool(x, ksize=[1, 3, 3, 1],strides=[1, 3, 3, 1], padding='SAME')
+    return tf.nn.max_pool(x, ksize=[1, 3, 3, 1],strides=[1, 2, 2, 1], padding='SAME')
 
 #########loading data##########
 target_wnd_size = [220, 220]
 
 data_dir = '../../array train dataset/fish types/%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
-ALB_data = numpy.load(data_dir + 'ALB.npy')
-BET_data = numpy.load(data_dir + 'BET.npy')
-DOL_data = numpy.load(data_dir + 'DOL.npy')
-LAG_data = numpy.load(data_dir + 'LAG.npy')
-OTHER_data = numpy.load(data_dir + 'OTHER.npy')
-SHARK_data = numpy.load(data_dir + 'SHARK.npy')
-YFT_data = numpy.load(data_dir + 'YFT.npy')
 
-y_data_list = []
-
-x_data = ALB_data
-for i in range(ALB_data.shape[0]):
-    y_data_list.append(numpy.array([1, 0, 0, 0, 0, 0, 0]))
-
-# for i in range(7):
-x_data = numpy.concatenate((x_data, BET_data))
-for j in range(BET_data.shape[0]):
-    y_data_list.append(numpy.array([0, 1, 0, 0, 0, 0, 0]))
-
-# for i in range(18):
-x_data = numpy.concatenate((x_data, DOL_data))
-for j in range(DOL_data.shape[0]):
-    y_data_list.append(numpy.array([0, 0, 1, 0, 0, 0, 0]))
-
-# for i in range(20):
-x_data = numpy.concatenate((x_data, LAG_data))
-for j in range(LAG_data.shape[0]):
-    y_data_list.append(numpy.array([0, 0, 0, 1, 0, 0, 0]))
-
-# for i in range(6):
-x_data = numpy.concatenate((x_data, OTHER_data))
-for j in range(OTHER_data.shape[0]):
-    y_data_list.append(numpy.array([0, 0, 0, 0, 1, 0, 0]))
-
-# for i in range(10):
-x_data = numpy.concatenate((x_data, SHARK_data))
-for j in range(SHARK_data.shape[0]):
-    y_data_list.append(numpy.array([0, 0, 0, 0, 0, 1, 0]))
-
-# for i in range(2):
-x_data = numpy.concatenate((x_data, YFT_data))
-for j in range(YFT_data.shape[0]):
-    y_data_list.append(numpy.array([0, 0, 0, 0, 0, 0, 1]))
-
-y_data = numpy.array(y_data_list, dtype=float)
-
-print x_data.shape
-print y_data.shape
-
-####shuffle
-for i in range(x_data.shape[0]/2):
-    if i % 2 == 0:
-        j = x_data.shape[0]
-
-        x_tmp = copy.copy(x_data[i])
-        x_data[i] = copy.copy(x_data[j-i-1])
-        x_data[j-i-1] = copy.copy(x_tmp)
-
-        y_tmp = copy.copy(y_data[i])
-        y_data[i] = copy.copy(y_data[j - i - 1])
-        y_data[j - i - 1] = copy.copy(y_tmp)
-#########
 
 ##############
 ## ONET
@@ -107,17 +47,17 @@ for i in range(x_data.shape[0]/2):
 # W_conv1 = weight_variable([3, 3, 3, 32])
 # b_conv1 = bias_variable([32])
 # h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
-# h_pool1 = max_pool_3x3(h_conv1)  ## one layer 3x3 max pooling
+# h_pool1 = max_pool_3x3_reduce(h_conv1)  ## one layer 3x3 max pooling
 #
 # W_conv2 = weight_variable([3, 3, 32, 64])
 # b_conv2 = bias_variable([64])
 # h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
-# h_pool2 = max_pool_3x3(h_conv2)  ## one layer 2x2 max pooling
+# h_pool2 = max_pool_3x3_reduce(h_conv2)  ## one layer 2x2 max pooling
 #
 # W_conv3 = weight_variable([3, 3, 64, 64])
 # b_conv3 = bias_variable([64])
 # h_conv3 = tf.nn.relu(conv2d(h_pool2, W_conv3) + b_conv3)
-# h_pool3 = max_pool_2x2(h_conv3)  ## one layer 2x2 max pooling
+# h_pool3 = max_pool_2x2_reduce(h_conv3)  ## one layer 2x2 max pooling
 #
 # W_conv4 = weight_variable([3, 3, 64, 128])
 # b_conv4 = bias_variable([128])
@@ -125,10 +65,10 @@ for i in range(x_data.shape[0]/2):
 #
 #
 # # fully connected layer
-# W_fc1 = weight_variable([3 * 3 * 128, 256])
+# W_fc1 = weight_variable([6 * 6 * 128, 256])
 # b_fc1 = bias_variable([256])
 #
-# h_pool2_flat = tf.reshape(h_conv4, [-1, 3 * 3 * 128])  # flat into 1 dimention
+# h_pool2_flat = tf.reshape(h_conv4, [-1, 6 * 6 * 128])  # flat into 1 dimention
 # h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 #
 # # dropout
@@ -150,63 +90,69 @@ x = tf.placeholder("float", shape=[None, wnd_size[0] * wnd_size[1], 3])
 y_ = tf.placeholder("float", shape=[None, 7])
 x_image = tf.reshape(x, [-1, wnd_size[0], wnd_size[1], 3])
 
-#######convolution layers
-####layer 1
+######convolution layers
+###layer 1
 W_conv1 = weight_variable([7, 7, 3, 64])
 b_conv1 = bias_variable([64])
 h_conv1 = tf.nn.relu(conv2d_reduce(x_image, W_conv1) + b_conv1)
-h_pool1 = max_pool_2x2_reduce(h_conv1)  ## one layer 2x2 max pooling
+h_pool1 = max_pool_3x3_reduce(h_conv1)  ## one layer 2x2 max pooling
 h_norm1 = tf.contrib.layers.batch_norm(h_pool1)
 
 ####layer 2
 W_conv2a = weight_variable([1, 1, 64, 64])
 b_conv2a = bias_variable([64])
 h_conv2a = tf.nn.relu(conv2d(h_norm1, W_conv2a) + b_conv2a)
-W_conv2 = weight_variable([3, 3, 64, 192])
-b_conv2 = bias_variable([192])
+W_conv2 = weight_variable([3, 3, 64, 128])
+b_conv2 = bias_variable([128])
 h_conv2 = tf.nn.relu(conv2d(h_conv2a, W_conv2) + b_conv2)
 h_norm2 = tf.contrib.layers.batch_norm(h_conv2)
-h_pool2 = max_pool_2x2_reduce(h_norm2)  ## one layer 2x2 max pooling
+h_pool2 = max_pool_3x3_reduce(h_norm2)  ## one layer 2x2 max pooling
 
 ###layer 3
-W_conv3a = weight_variable([1, 1, 192, 192])
-b_conv3a = bias_variable([192])
+W_conv3a = weight_variable([1, 1, 128, 128])
+b_conv3a = bias_variable([128])
 h_conv3a = tf.nn.relu(conv2d(h_pool2, W_conv3a) + b_conv3a)
-W_conv3 = weight_variable([3, 3, 192, 384])
-b_conv3 = bias_variable([384])
+W_conv3 = weight_variable([3, 3, 128, 256])
+b_conv3 = bias_variable([256])
 h_conv3 = tf.nn.relu(conv2d(h_conv3a, W_conv3) + b_conv3)
-h_pool3 = max_pool_2x2_reduce(h_conv3)
+h_pool3 = max_pool_3x3_reduce(h_conv3)
+h_norm3 = tf.contrib.layers.batch_norm(h_pool3)
+
 
 ###layer 4
-W_conv4a = weight_variable([1, 1, 384, 384])
-b_conv4a = bias_variable([384])
-h_conv4a = tf.nn.relu(conv2d(h_pool3, W_conv4a) + b_conv4a)
-W_conv4 = weight_variable([3, 3, 384, 256])
+W_conv4a = weight_variable([1, 1, 256, 256])
+b_conv4a = bias_variable([256])
+h_conv4a = tf.nn.relu(conv2d(h_norm3, W_conv4a) + b_conv4a)
+W_conv4 = weight_variable([3, 3, 256, 256])
 b_conv4 = bias_variable([256])
 h_conv4 = tf.nn.relu(conv2d(h_conv4a, W_conv4) + b_conv4)
+h_norm4 = tf.contrib.layers.batch_norm(h_conv4)
+
 
 ###layer 5
 W_conv5a = weight_variable([1, 1, 256, 256])
 b_conv5a = bias_variable([256])
-h_conv5a = tf.nn.relu(conv2d(h_conv4, W_conv5a) + b_conv5a)
+h_conv5a = tf.nn.relu(conv2d(h_norm4, W_conv5a) + b_conv5a)
 W_conv5 = weight_variable([3, 3, 256, 256])
 b_conv5 = bias_variable([256])
 h_conv5 = tf.nn.relu(conv2d(h_conv5a, W_conv5) + b_conv5)
+h_norm5 = tf.contrib.layers.batch_norm(h_conv5)
 
 ####layer 6
 W_conv6a = weight_variable([1, 1, 256, 256])
 b_conv6a = bias_variable([256])
-h_conv6a = tf.nn.relu(conv2d(h_conv5, W_conv6a) + b_conv6a)
+h_conv6a = tf.nn.relu(conv2d(h_norm5, W_conv6a) + b_conv6a)
 W_conv6 = weight_variable([3, 3, 256, 256])
 b_conv6 = bias_variable([256])
 h_conv6 = tf.nn.relu(conv2d(h_conv6a, W_conv6) + b_conv6)
-h_pool6 = max_pool_2x2_reduce(h_conv3)
+h_pool6 = max_pool_3x3_reduce(h_conv6)
+h_norm6 = tf.contrib.layers.batch_norm(h_pool6)
 
 ### fully connected layer
 W_fc1 = weight_variable([7 * 7 * 256, 128])
 b_fc1 = bias_variable([128])
 
-h_pool2_flat = tf.reshape(h_conv4, [-1, 7 * 7 * 256])  # flat into 1 dimention
+h_pool2_flat = tf.reshape(h_norm6, [-1, 7 * 7 * 256])  # flat into 1 dimention
 h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 
 # dropout
@@ -219,17 +165,28 @@ b_fc2 = bias_variable([7])
 
 y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 
+
 ###########training part
 sess = tf.InteractiveSession()
 tf.global_variables_initializer().run()
 
 cross_entropy = tf.reduce_mean(
-    tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv) +
-    tf.nn.softmax_cross_entropy_with_logits(labels=1-y_, logits=1-y_conv))
-
+    tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
 
 mse = tf.reduce_mean(tf.square(y_-y_conv))
 
+## l2 norm loss
+unregularized_loss = tf.nn.l2_loss(y_-y_conv)
+#
+l2_regularization_penalty = 1
+l2_loss = l2_regularization_penalty *\
+          (tf.nn.l2_loss(W_conv1) + tf.nn.l2_loss(W_conv2a) + tf.nn.l2_loss(W_conv2)
+           + tf.nn.l2_loss(W_conv3) + tf.nn.l2_loss(W_conv3a) + tf.nn.l2_loss(W_conv4) +
+           tf.nn.l2_loss(W_conv4a) + tf.nn.l2_loss(b_conv5) + tf.nn.l2_loss(W_conv5a) +
+           tf.nn.l2_loss(W_conv6) + tf.nn.l2_loss(W_fc1) + tf.nn.l2_loss(W_fc2))
+
+loss = tf.add(cross_entropy, l2_loss)
+############################
 
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
@@ -239,8 +196,8 @@ train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
 #
-# saver.restore(sess, './onet_train.ckpt')
-# print("Model restored.")
+saver.restore(sess, './onet_train.ckpt')
+print("Model restored.")
 step = 0
 batch_i = 0
 min_acc = 2.0
@@ -248,9 +205,17 @@ max_acc = 0.0
 total_acc = 0
 avg_acc = 0
 stride = 50
+file_len = 359
+
 while True:
 
-    if batch_i*stride == x_data.shape[0]/2:
+    step += 1
+    batch_i += 1
+
+    x_data = numpy.load(data_dir + 'img_data_id%d.npy' % batch_i)
+    y_data = numpy.load(data_dir + 'label_id%d.npy' % batch_i)
+
+    if batch_i % 10 == 0 or step % 10 == 0:
         avg_acc = float(total_acc) / batch_i
 
         print 'minimum accuracy is %f' % min_acc
@@ -259,16 +224,19 @@ while True:
         print 'Save model'
         print
 
+        step = 0
+
         save_path = saver.save(sess, save_path= './onet_train.ckpt')
 
 
-    if batch_i*stride > x_data.shape[0]:
+    if batch_i >= file_len:
         avg_acc = float(total_acc) / batch_i
 
         print 'minimum accuracy is %f' % min_acc
         print 'maximum accuracy is %f' % max_acc
         print 'average accuracy is %f' % avg_acc
         print 'Save model'
+        print 'One Round'
         print
 
         save_path = saver.save(sess, save_path= './onet_train.ckpt')
@@ -278,16 +246,13 @@ while True:
             print 'Save model'
             print min_acc
 
-        step = 0
-        batch_i = 0
+        batch_i = 1
         min_acc = 2.0
         max_acc = 0.0
         total_acc = 0
         avg_acc = 0
 
 
-    x_data_batch = x_data[batch_i*stride: batch_i*stride+stride, 0: 48 * 48, 0:3]
-    y_data_batch = y_data[batch_i*stride:batch_i*stride+stride, 0:7]
 
     train_step.run({y_: y_data, x: x_data, keep_prob: 0.5}, sess)
 
@@ -302,17 +267,18 @@ while True:
 
     total_acc += train_accuracy
 
+    print 'batch number %d' % batch_i
     print train_accuracy
     print e
     print
 
-    batch_i += 1
-    step += 1
+    # if train_accuracy > 0.7:
+    #     batch_i += 1
 
-    if train_accuracy > 0.99:
-        print 'save model'
-        save_path = saver.save(sess, save_path= './onet_train.ckpt')
-        break
+    # if train_accuracy > 0.99:
+    #     print 'save model'
+    #     save_path = saver.save(sess, save_path= './onet_train.ckpt')
+    #     break
 
 
 

@@ -30,70 +30,12 @@ def max_pool_3x3_reduce(x):
 
 #########loading data##########
 target_wnd_size = [220, 220]
+file_len = 359
+
 
 data_dir = '../../array train dataset/fish types/%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
-ALB_data = numpy.load(data_dir + 'ALB.npy')
-BET_data = numpy.load(data_dir + 'BET.npy')
-DOL_data = numpy.load(data_dir + 'DOL.npy')
-LAG_data = numpy.load(data_dir + 'LAG.npy')
-OTHER_data = numpy.load(data_dir + 'OTHER.npy')
-SHARK_data = numpy.load(data_dir + 'SHARK.npy')
-YFT_data = numpy.load(data_dir + 'YFT.npy')
 
-y_data_list = []
 
-x_data = ALB_data
-for i in range(ALB_data.shape[0]):
-    y_data_list.append(numpy.array([1, 0, 0, 0, 0, 0, 0]))
-
-for i in range(7):
-    x_data = numpy.concatenate((x_data, BET_data))
-    for j in range(BET_data.shape[0]):
-        y_data_list.append(numpy.array([0, 1, 0, 0, 0, 0, 0]))
-
-for i in range(18):
-    x_data = numpy.concatenate((x_data, DOL_data))
-    for j in range(DOL_data.shape[0]):
-        y_data_list.append(numpy.array([0, 0, 1, 0, 0, 0, 0]))
-
-for i in range(20):
-    x_data = numpy.concatenate((x_data, LAG_data))
-    for j in range(LAG_data.shape[0]):
-        y_data_list.append(numpy.array([0, 0, 0, 1, 0, 0, 0]))
-
-# for i in range(6):
-x_data = numpy.concatenate((x_data, OTHER_data))
-for j in range(OTHER_data.shape[0]):
-    y_data_list.append(numpy.array([0, 0, 0, 0, 1, 0, 0]))
-
-for i in range(10):
-    x_data = numpy.concatenate((x_data, SHARK_data))
-    for j in range(SHARK_data.shape[0]):
-        y_data_list.append(numpy.array([0, 0, 0, 0, 0, 1, 0]))
-
-for i in range(2):
-    x_data = numpy.concatenate((x_data, YFT_data))
-    for j in range(YFT_data.shape[0]):
-        y_data_list.append(numpy.array([0, 0, 0, 0, 0, 0, 1]))
-
-y_data = numpy.array(y_data_list, dtype=float)
-
-print x_data.shape
-print y_data.shape
-
-####shuffle
-for i in range(x_data.shape[0]/2):
-    if i % 2 == 0:
-        j = x_data.shape[0]
-
-        x_tmp = copy.copy(x_data[i])
-        x_data[i] = copy.copy(x_data[j-i-1])
-        x_data[j-i-1] = copy.copy(x_tmp)
-
-        y_tmp = copy.copy(y_data[i])
-        y_data[i] = copy.copy(y_data[j - i - 1])
-        y_data[j - i - 1] = copy.copy(y_tmp)
-#########
 
 ##############
 ## ONET
@@ -145,9 +87,9 @@ for i in range(x_data.shape[0]/2):
 ## FaceNet
 ##################
 wnd_size = [220, 220]
-x = tf.placeholder("float", shape=[None, wnd_size[0] * wnd_size[1], 3])
+x = tf.placeholder("float", shape=[None, wnd_size[0], wnd_size[1], 3])
 y_ = tf.placeholder("float", shape=[None, 7])
-x_image = tf.reshape(x, [-1, wnd_size[0], wnd_size[1], 3])
+x_image = x
 
 ######convolution layers
 ###layer 1
@@ -250,7 +192,7 @@ loss = tf.add(cross_entropy, l2_loss)
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
+train_step = tf.train.AdamOptimizer(1e-6).minimize(loss)
 
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
@@ -264,31 +206,46 @@ max_acc = 0.0
 total_acc = 0
 avg_acc = 0
 stride = 50
+file_i = 1
 
 while True:
 
     step += 1
+
+    if batch_i == 0:
+        x_data = numpy.load(data_dir + 'img_data_id%d.npy' % file_i)
+        y_data = numpy.load(data_dir + 'label_id%d.npy' % file_i)
+        file_i += 1
+
+    if x_data is None or y_data is None:
+        print 'none type break'
+        break
+
+    x_data_batch = x_data[batch_i]
+    y_data_batch = y_data[batch_i]
+
+    x_data_batch = x_data_batch.reshape(1, target_wnd_size[0], target_wnd_size[1], 3)
+    y_data_batch = y_data_batch.reshape(1, 7)
+
     batch_i += 1
 
-    # x_data = numpy.load(data_dir + 'img_data_id%d.npy' % batch_i)
-    # y_data = numpy.load(data_dir + 'label_id%d.npy' % batch_i)
+    if batch_i == 48:
+        avg_acc = float(total_acc) / step
 
-    if batch_i % 10 == 0 or step % 10 == 0:
-        avg_acc = float(total_acc) / batch_i
-
+        print 'file id is %d.' % (file_i - 1)
         print 'minimum accuracy is %f' % min_acc
         print 'maximum accuracy is %f' % max_acc
         print 'average accuracy is %f' % avg_acc
         print 'Save model'
         print
 
-        step = 0
+        batch_i = 0
 
         save_path = saver.save(sess, save_path= './onet_train.ckpt')
 
 
-    if batch_i >= 50:
-        avg_acc = float(total_acc) / batch_i
+    if file_i > file_len:
+        avg_acc = float(total_acc) / step
 
         print 'minimum accuracy is %f' % min_acc
         print 'maximum accuracy is %f' % max_acc
@@ -304,7 +261,9 @@ while True:
             print 'Save model'
             print min_acc
 
-        batch_i = 1
+        file_i = 1
+        step = 0
+        batch_i = 0
         min_acc = 2.0
         max_acc = 0.0
         total_acc = 0
@@ -312,10 +271,12 @@ while True:
 
 
 
-    train_step.run({y_: y_data, x: x_data, keep_prob: 0.5}, sess)
+    train_step.run({y_: y_data_batch, x: x_data_batch, keep_prob: 0.5}, sess)
 
-    e = sess.run(cross_entropy, feed_dict={y_: y_data, x: x_data, keep_prob: 1.0})
-    train_accuracy = accuracy.eval(feed_dict={y_: y_data, x: x_data, keep_prob: 1.0})
+    e = sess.run(loss, feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
+    train_accuracy = accuracy.eval(feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
+
+
 
     if min_acc > train_accuracy:
         min_acc = train_accuracy
@@ -325,10 +286,11 @@ while True:
 
     total_acc += train_accuracy
 
-    print 'batch number %d' % batch_i
-    print train_accuracy
-    print e
-    print
+    # print 'batch number %d' % batch_i
+    # print train_accuracy
+    # print e
+    # print
+
 
     # if train_accuracy > 0.7:
     #     batch_i += 1

@@ -31,9 +31,9 @@ def max_pool_3x3_reduce(x):
 
 def retrieve_prob_list(image_path):
     target_wnd_size = [220, 220]
-    x = tf.placeholder("float", shape=[None, target_wnd_size[0] * target_wnd_size[1], 3])
+    x = tf.placeholder("float", shape=[None, target_wnd_size[0], target_wnd_size[1], 3])
     y_ = tf.placeholder("float", shape=[None, 7])
-    x_image = tf.reshape(x, [-1, target_wnd_size[0], target_wnd_size[1], 3])
+    x_image = x
 
     ######convolution layers
     ###layer 1
@@ -116,8 +116,7 @@ def retrieve_prob_list(image_path):
         saver.restore(sess, 'Fish_Classifier/onet_train.ckpt')
         image = io.imread(image_path)
         image_data = transform.resize(image, [target_wnd_size[0], target_wnd_size[1]])
-        image_data = image_data.reshape([1, target_wnd_size[0]*target_wnd_size[1], 3])
-
+        image_data = image_data.reshape([1, target_wnd_size[0], target_wnd_size[1], 3])
         validation_pred = y_conv.eval({x: image_data}, sess)
 
         return validation_pred

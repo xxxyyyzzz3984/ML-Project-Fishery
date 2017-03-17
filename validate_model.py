@@ -3,7 +3,7 @@ import os
 from os.path import isfile, join
 import tensorflow as tf
 
-target_dir = '../cropped train dataset/ALB/'
+target_dir = '../cropped train dataset/BET/'
 
 target_images = [f for f in os.listdir(target_dir)
                          if isfile(join(target_dir, f))]

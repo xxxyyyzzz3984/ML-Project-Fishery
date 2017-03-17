@@ -1,3 +1,5 @@
+import random
+
 import numpy
 import copy
 
@@ -5,17 +7,17 @@ from skimage import io, transform
 import os
 from os.path import isfile, join
 
-croppeed_fish_folders = ['../cropped train dataset/ALB/', '../cropped train dataset/BET/',
-                         '../cropped train dataset/DOL/', '../cropped train dataset/LAG/',
-                         '../cropped train dataset/OTHER/', '../cropped train dataset/SHARK/',
-                         '../cropped train dataset/YFT/']
+croppeed_fish_folders = ['../rotated cropped fish/rotated_ALB/', '../rotated cropped fish/rotated_BET/',
+                         '../rotated cropped fish/rotated_DOL/', '../rotated cropped fish/rotated_LAG/',
+                         '../rotated cropped fish/rotated_OTHER/', '../rotated cropped fish/rotated_SHARK/',
+                         '../rotated cropped fish/rotated_YFT/']
 
 all_fish_image_paths = []
 
 
-wnd_size = [220, 220]
+wnd_size = [48, 48]
 
-save_dir = '../array train dataset/fish types/%dx%d/' % (wnd_size[0], wnd_size[1])
+save_dir = '../array train dataset/fish types/rotated_%dx%d/' % (wnd_size[0], wnd_size[1])
 
 
 for croppeed_fish_folder in croppeed_fish_folders:
@@ -67,7 +69,7 @@ for i in range(max(ALB_len, BET_len, DOL_len, LAG_len, OTHER_len, SHARK_len, YFT
     SHARK_image_data = io.imread(all_fish_image_paths[5][step6])
     YFT_image_data = io.imread(all_fish_image_paths[6][step7])
 
-    print all_fish_image_paths[0][step1]
+    #print all_fish_image_paths[0][step1]
 
     ALB_image_data = transform.resize(ALB_image_data, wnd_size)
     BET_image_data = transform.resize(BET_image_data, wnd_size)
@@ -138,16 +140,21 @@ for i in range(max(ALB_len, BET_len, DOL_len, LAG_len, OTHER_len, SHARK_len, YFT
     if step7 >= YFT_len:
         step7 = 0
 
-    # if len(img_list) >= file_size:
-    #     img_array = numpy.array(img_list)
-    #     label_array = numpy.array(label_list)
-    #     print img_array.shape
-    #     print label_array.shape
-    #
-    #     # numpy.save(save_dir + 'img_data_id%d' % file_count, img_array)
-    #     # numpy.save(save_dir + 'label_id%d' % file_count, label_array)
-    #
-    #     img_list = []
-    #     label_list = []
-    #
-    #     file_count += 1
+    if len(img_list) >= file_size:
+         img_array = numpy.array(img_list)
+         label_array = numpy.array(label_list)
+         s = list(zip(img_array, label_array))
+         random.shuffle(s)
+         img_array_shuffle, label_array_shuffle = zip(*s)
+
+
+         print img_array.shape
+         print label_array.shape
+    
+         numpy.save(save_dir + 'img_data_id%d' % file_count, img_array_shuffle)
+         numpy.save(save_dir + 'label_id%d' % file_count, label_array_shuffle)
+    
+         img_list = []
+         label_list = []
+    
+         file_count += 1

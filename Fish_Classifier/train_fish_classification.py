@@ -1,3 +1,5 @@
+import random
+
 import numpy
 import tensorflow as tf
 import copy
@@ -30,17 +32,17 @@ def max_pool_3x3_reduce(x):
 
 #########loading data##########
 target_wnd_size = [220, 220]
-file_len = 359
+file_len = 84
 
 
-data_dir = '../../array train dataset/fish types/%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
+data_dir = '../../array train dataset/fish types/rotated_%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
 
 
 
 ##############
 ## ONET
 ##############
-# x = tf.placeholder("float", shape=[None, 48 * 48, 3])
+# x = tf.placeholder("float", shape=[None, 48, 48, 3])
 # y_ = tf.placeholder("float", shape=[None, 7])
 # x_image = tf.reshape(x, [-1, 48, 48, 3])
 #
@@ -177,7 +179,7 @@ cross_entropy = tf.reduce_mean(
 mse = tf.reduce_mean(tf.square(y_-y_conv))
 
 ## l2 norm loss
-unregularized_loss = tf.nn.l2_loss(y_-y_conv)
+unregularized_loss = cross_entropy
 #
 l2_regularization_penalty = 1
 l2_loss = l2_regularization_penalty *\
@@ -186,13 +188,18 @@ l2_loss = l2_regularization_penalty *\
            tf.nn.l2_loss(W_conv4a) + tf.nn.l2_loss(b_conv5) + tf.nn.l2_loss(W_conv5a) +
            tf.nn.l2_loss(W_conv6) + tf.nn.l2_loss(W_fc1) + tf.nn.l2_loss(W_fc2))
 
-loss = tf.add(cross_entropy, l2_loss)
+# l2_loss = l2_regularization_penalty *\
+#           (tf.nn.l2_loss(W_conv1)  + tf.nn.l2_loss(W_conv2)
+#            + tf.nn.l2_loss(W_conv3)  + tf.nn.l2_loss(W_conv4) +
+#            + tf.nn.l2_loss(W_fc1) + tf.nn.l2_loss(W_fc2))
+
+loss = tf.add(unregularized_loss, l2_loss)
 ############################
 
 correct_prediction = tf.equal(tf.argmax(y_conv, 1), tf.argmax(y_, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
-train_step = tf.train.AdamOptimizer(1e-6).minimize(loss)
+train_step = tf.train.AdamOptimizer(1e-6).minimize(cross_entropy)
 
 sess.run(tf.global_variables_initializer())
 saver = tf.train.Saver()
@@ -212,7 +219,14 @@ while True:
 
     step += 1
 
-    if batch_i == 0:
+    # if batch_i == 0:
+
+
+    #s = list(zip(x_data, y_data))
+    #random.shuffle(s)
+    #x_data_batch, y_data_batch = zip(*s)
+
+    if batch_i < 1:
         x_data = numpy.load(data_dir + 'img_data_id%d.npy' % file_i)
         y_data = numpy.load(data_dir + 'label_id%d.npy' % file_i)
         file_i += 1
@@ -223,7 +237,7 @@ while True:
 
     x_data_batch = x_data[batch_i]
     y_data_batch = y_data[batch_i]
-
+    #
     x_data_batch = x_data_batch.reshape(1, target_wnd_size[0], target_wnd_size[1], 3)
     y_data_batch = y_data_batch.reshape(1, 7)
 
@@ -273,7 +287,7 @@ while True:
 
     train_step.run({y_: y_data_batch, x: x_data_batch, keep_prob: 0.5}, sess)
 
-    e = sess.run(loss, feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
+    # e = sess.run(loss, feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
     train_accuracy = accuracy.eval(feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
 
 
@@ -285,6 +299,7 @@ while True:
         max_acc = train_accuracy
 
     total_acc += train_accuracy
+
 
     # print 'batch number %d' % batch_i
     # print train_accuracy

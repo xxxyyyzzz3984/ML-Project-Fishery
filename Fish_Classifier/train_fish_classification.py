@@ -32,7 +32,7 @@ def max_pool_3x3_reduce(x):
 
 #########loading data##########
 target_wnd_size = [220, 220]
-file_len = 84
+file_len = 235
 
 
 data_dir = '../../array train dataset/fish types/rotated_%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
@@ -214,6 +214,7 @@ total_acc = 0
 avg_acc = 0
 stride = 50
 file_i = 1
+total_e = 0
 
 while True:
 
@@ -245,11 +246,15 @@ while True:
 
     if batch_i == 48:
         avg_acc = float(total_acc) / step
+        avc_e = float(total_e) / step
+
 
         print 'file id is %d.' % (file_i - 1)
         print 'minimum accuracy is %f' % min_acc
         print 'maximum accuracy is %f' % max_acc
         print 'average accuracy is %f' % avg_acc
+        print 'average error is %f' % avc_e
+
         print 'Save model'
         print
 
@@ -260,20 +265,23 @@ while True:
 
     if file_i > file_len:
         avg_acc = float(total_acc) / step
+        avc_e = float(total_e) / step
 
         print 'minimum accuracy is %f' % min_acc
         print 'maximum accuracy is %f' % max_acc
         print 'average accuracy is %f' % avg_acc
+        print 'average error is %f' % avc_e
+
         print 'Save model'
         print 'One Round'
         print
 
         save_path = saver.save(sess, save_path= './onet_train.ckpt')
 
-        if min_acc > 0.99:
-            print 'loading new data.......'
-            print 'Save model'
-            print min_acc
+        if avg_acc > 0.99:
+            print 'Saving the last model and break'
+            save_path = saver.save(sess, save_path='./onet_train.ckpt')
+            break
 
         file_i = 1
         step = 0
@@ -282,12 +290,13 @@ while True:
         max_acc = 0.0
         total_acc = 0
         avg_acc = 0
+        total_e = 0
 
 
 
     train_step.run({y_: y_data_batch, x: x_data_batch, keep_prob: 0.5}, sess)
 
-    # e = sess.run(loss, feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
+    e = sess.run(mse, feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
     train_accuracy = accuracy.eval(feed_dict={y_: y_data_batch, x: x_data_batch, keep_prob: 1.0})
 
 
@@ -300,10 +309,11 @@ while True:
 
     total_acc += train_accuracy
 
+    total_e += e
+
 
     # print 'batch number %d' % batch_i
     # print train_accuracy
-    # print e
     # print
 
 

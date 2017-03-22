@@ -3,7 +3,7 @@ import os
 from os.path import isfile, join
 import tensorflow as tf
 
-target_dir = '../cropped train dataset/BET/'
+target_dir = '/home/xyh3984/Downloads/extend data/SHARK/'
 
 target_images = [f for f in os.listdir(target_dir)
                          if isfile(join(target_dir, f))]
@@ -19,7 +19,7 @@ for target_image in target_images:
     tmp_probs = retrieve_prob_list(image_path)[0]
     tf.reset_default_graph()
 
-    if numpy.argmax(tmp_probs) == 0:
+    if numpy.argmax(tmp_probs) == 5:
         correct += 1
 
     total += 1

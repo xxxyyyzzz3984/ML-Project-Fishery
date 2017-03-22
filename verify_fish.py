@@ -4,6 +4,7 @@ from os.path import isfile, join
 import copy
 import csv
 import numpy
+import cv2
 
 def all_same(items):
     return all(x == items[0] for x in items)
@@ -15,13 +16,14 @@ writer = csv.writer(open(csv_filename, 'wb'))
 
 writer.writerow(['image', 'ALB'	, 'BET', 'DOL', 'LAG', 'NoF', 'OTHER', 'SHARK', 'YFT'])
 
+dataset_dir = '../find test fish/'
 
-saved_images_paths = [x[0] for x in os.walk('../find test fish/')]
+saved_images_paths = [x[0] for x in os.walk(dataset_dir)]
 saved_images_paths = saved_images_paths[1:len(saved_images_paths)]
 pic_count = 0
 for saved_images_path in saved_images_paths:
     image_info = dict()
-    image_info['image'] = saved_images_path.replace('../find test fish/', '') + '.jpg'
+    image_info['image'] = saved_images_path.replace(dataset_dir, '') + '.jpg'
 
     saved_images_path = saved_images_path + '/'
     pics_of_one_image = [f for f in os.listdir(saved_images_path)
@@ -47,11 +49,16 @@ for saved_images_path in saved_images_paths:
         max_prob = 0
         for pic_per_image in pics_of_one_image:
             image_path = saved_images_path + pic_per_image
+
+            # cv2.imshow("test", cv2.imread(image_path))
+            # cv2.waitKey()
+
             from Fish_Classifier.fish_classifier import retrieve_prob_list
 
             tmp_probs = retrieve_prob_list(image_path)[0]
             tf.reset_default_graph()
 
+            print tmp_probs
             max_indexes.append(numpy.argmax(tmp_probs))
             fish_probs_all.append(copy.copy(tmp_probs))
 

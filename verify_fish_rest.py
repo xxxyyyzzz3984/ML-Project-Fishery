@@ -9,13 +9,15 @@ import numpy
 def all_same(items):
     return all(x == items[0] for x in items)
 
-all_test_pics = [f for f in listdir('../test dataset/')
-                 if isfile(join('../test dataset/', f))]
+dataset_dir = '../test dataset/'
+
+all_test_pics = [f for f in listdir(dataset_dir)
+                 if isfile(join(dataset_dir, f))]
 
 fish_kinds = ['ALB', 'BET', 'DOL', 'LAG', 'OTHER', 'SHARK', 'YFT']
 
-csv_filename = 'result2.csv'
-writer = csv.writer(open(csv_filename, 'wb'))
+csv_filename = 'result.csv'
+writer = csv.writer(open(csv_filename, 'a'))
 
 
 
@@ -26,6 +28,7 @@ for line in f:
         all_test_pics.remove(alread_save_image)
     except:
         pass
+f.close()
 
 remain_images = copy.copy(all_test_pics)
 

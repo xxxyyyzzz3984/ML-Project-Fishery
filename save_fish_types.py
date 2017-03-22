@@ -2,8 +2,7 @@ import random
 
 import numpy
 import copy
-
-from skimage import io, transform
+from skimage import io, transform, color, feature
 import os
 from os.path import isfile, join
 
@@ -15,7 +14,7 @@ croppeed_fish_folders = ['../rotated cropped fish/rotated_ALB/', '../rotated cro
 all_fish_image_paths = []
 
 
-wnd_size = [48, 48]
+wnd_size = [220, 220]
 
 save_dir = '../array train dataset/fish types/rotated_%dx%d/' % (wnd_size[0], wnd_size[1])
 
@@ -79,6 +78,34 @@ for i in range(max(ALB_len, BET_len, DOL_len, LAG_len, OTHER_len, SHARK_len, YFT
     SHARK_image_data = transform.resize(SHARK_image_data, wnd_size)
     YFT_image_data = transform.resize(YFT_image_data, wnd_size)
 
+
+    if ALB_image_data.shape != (220, 220, 3):
+        print all_fish_image_paths[0][step1]
+        print step1
+        print
+        print ALB_image_data.shape
+
+    if BET_image_data.shape != (220, 220, 3):
+        print all_fish_image_paths[1][step2]
+        print BET_image_data.shape
+
+    if DOL_image_data.shape != (220, 220, 3):
+        print all_fish_image_paths[2][step3]
+        print DOL_image_data.shape
+
+    if LAG_image_data.shape != (220, 220, 3):
+        print all_fish_image_paths[3][step4]
+        print LAG_image_data.shape
+
+    if SHARK_image_data.shape != (220, 220, 3):
+        print all_fish_image_paths[5][step6]
+        print SHARK_image_data.shape
+
+    if YFT_image_data.shape != (220, 220, 3):
+        print all_fish_image_paths[6][step7]
+        print YFT_image_data.shape
+
+
     # ALB_image_data = ALB_image_data.reshape(wnd_size[0] * wnd_size[1], 3)
     # BET_image_data = BET_image_data.reshape(wnd_size[0] * wnd_size[1], 3)
     # DOL_image_data = DOL_image_data.reshape(wnd_size[0] * wnd_size[1], 3)
@@ -103,13 +130,13 @@ for i in range(max(ALB_len, BET_len, DOL_len, LAG_len, OTHER_len, SHARK_len, YFT
     img_list.append(copy.copy(SHARK_image_data))
     img_list.append(copy.copy(YFT_image_data))
 
-    label_list.append(numpy.array([1, 0, 0, 0, 0, 0, 0]))
-    label_list.append(numpy.array([0, 1, 0, 0, 0, 0, 0]))
-    label_list.append(numpy.array([0, 0, 1, 0, 0, 0, 0]))
-    label_list.append(numpy.array([0, 0, 0, 1, 0, 0, 0]))
-    label_list.append(numpy.array([0, 0, 0, 0, 1, 0, 0]))
-    label_list.append(numpy.array([0, 0, 0, 0, 0, 1, 0]))
-    label_list.append(numpy.array([0, 0, 0, 0, 0, 0, 1]))
+    label_list.append(numpy.array([2, 0, 0, 0, 0, 0, 0]))
+    label_list.append(numpy.array([0, 2, 0, 0, 0, 0, 0]))
+    label_list.append(numpy.array([0, 0, 2, 0, 0, 0, 0]))
+    label_list.append(numpy.array([0, 0, 0, 2, 0, 0, 0]))
+    label_list.append(numpy.array([0, 0, 0, 0, 2, 0, 0]))
+    label_list.append(numpy.array([0, 0, 0, 0, 0, 2, 0]))
+    label_list.append(numpy.array([0, 0, 0, 0, 0, 0, 2]))
 
     step1 += 1
     step2 += 1
@@ -120,6 +147,8 @@ for i in range(max(ALB_len, BET_len, DOL_len, LAG_len, OTHER_len, SHARK_len, YFT
     step7 += 1
 
     if step1 >= ALB_len:
+        print 'herer'
+        print step1
         step1 = 0
 
     if step2 >= BET_len:
@@ -141,6 +170,7 @@ for i in range(max(ALB_len, BET_len, DOL_len, LAG_len, OTHER_len, SHARK_len, YFT
         step7 = 0
 
     if len(img_list) >= file_size:
+
          img_array = numpy.array(img_list)
          label_array = numpy.array(label_list)
          s = list(zip(img_array, label_array))
@@ -150,11 +180,11 @@ for i in range(max(ALB_len, BET_len, DOL_len, LAG_len, OTHER_len, SHARK_len, YFT
 
          print img_array.shape
          print label_array.shape
-    
+
          numpy.save(save_dir + 'img_data_id%d' % file_count, img_array_shuffle)
          numpy.save(save_dir + 'label_id%d' % file_count, label_array_shuffle)
-    
+
          img_list = []
          label_list = []
-    
+
          file_count += 1

@@ -7,10 +7,10 @@ writer = csv.writer(open(save_csv_filepath, 'wb'))
 writer.writerow(['image', 'ALB'	, 'BET', 'DOL', 'LAG', 'NoF', 'OTHER', 'SHARK', 'YFT'])
 
 
-top1_value = 0.7
-top2_value = 0.03
-top3_value = 0.03
-top4_value = 0.03
+top1_value = 0.9
+top2_value = 0.2
+top3_value = 0.1
+top4_value = 0.06
 top5_value = 0.03
 top6_value = 0.03
 top7_value = 0.03
@@ -28,20 +28,21 @@ for line in f:
         image_name = image_results[0]
         image_results = image_results[1: len(image_results)]
         image_results = [float(i) for i in image_results]
-        if image_results[4] > 0.3:
-            image_results = [0.03, 0.03, 0.03, 0.03, 0.7, 0.03, 0.03, 0.03]
-        if image_results[0] > 0.3:
-            image_results = [0.7, 0.6, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]  
-        if image_results[1] > 0.3:
-            image_results = [0.6, 0.7, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]
+        # if image_results[4] > 0.3:
+        #     pass
+            # image_results = [0.03, 0.03, 0.03, 0.03, 0.8, 0.03, 0.03, 0.03]
+        #if image_results[0] > 0.3:
+        #    image_results = [0.7, 0.6, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]
+        #if image_results[1] > 0.3:
+        #    image_results = [0.6, 0.7, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]
 
-        else:
-            small_to_big_indices = sorted(range(len(image_results)), key=lambda i: image_results[i])[-8:]
+        # else:
+        small_to_big_indices = sorted(range(len(image_results)), key=lambda i: image_results[i])[-8:]
 
-            i = 0
-            for index in small_to_big_indices:
-                image_results[index] = small_to_large_values[i]
-                i += 1
+        i = 0
+        for index in small_to_big_indices:
+            image_results[index] = small_to_large_values[i]
+            i += 1
 
         image_results = [image_name] + image_results
 

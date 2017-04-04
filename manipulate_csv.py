@@ -23,32 +23,42 @@ small_to_large_values = [top8_value, top7_value, top6_value, top5_value, top4_va
 f = open(target_csv_filepath)
 
 for line in f:
-    try:
+
+
         image_results = line.replace('\n', '').split(',')
         image_name = image_results[0]
+        if image_name == 'image':
+            continue
+        image_name = image_name.replace('+AF8-', '_')
+        print image_name
         image_results = image_results[1: len(image_results)]
-        image_results = [float(i) for i in image_results]
-        # if image_results[4] > 0.3:
-        #     pass
-            # image_results = [0.03, 0.03, 0.03, 0.03, 0.8, 0.03, 0.03, 0.03]
-        #if image_results[0] > 0.3:
-        #    image_results = [0.7, 0.6, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]
-        #if image_results[1] > 0.3:
-        #    image_results = [0.6, 0.7, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]
+        image_results = [float(i.replace('+AC0', '')) for i in image_results]
 
-        # else:
-        small_to_big_indices = sorted(range(len(image_results)), key=lambda i: image_results[i])[-8:]
+        if image_results[0] > 0.5 and image_results[0] < 0.6:
+            #image_results = [0.5, 0.5, 0.03, 0.03, 0.03, 0.03, 0.03, 0.6]
+            pass
+        elif image_results[7] > 0.3 and image_results[7]<0.9999:
+            image_results = [0.8, 0.4, 0.03, 0.03, 0.03, 0.03, 0.03, 0.3]
 
-        i = 0
-        for index in small_to_big_indices:
-            image_results[index] = small_to_large_values[i]
-            i += 1
+        elif image_results[5] > 0.3 and image_results[5] < 0.999:
+            image_results = [0.7, 0.1, 0.02, 0.02, 0.02, 0.02, 0.02, 0.3]
+
+        elif image_results[6] > 0.3 and image_results[6] < 0.999:
+            image_results = [0.8, 0.4, 0.03, 0.03, 0.03, 0.03, 0.03, 0.3]
+            
+        if image_results[1] > 0.3:
+            image_results = [0.6, 0.7, 0.02, 0.02, 0.02, 0.02, 0.02, 0.02]
+
+        else:
+            small_to_big_indices = sorted(range(len(image_results)), key=lambda i: image_results[i])[-8:]
+            i = 0
+            
+            for index in small_to_big_indices:
+                image_results[index] = small_to_large_values[i]
+                i += 1
 
         image_results = [image_name] + image_results
 
         writer.writerow(image_results)
-
-    except:
-        pass
 
 f.close()

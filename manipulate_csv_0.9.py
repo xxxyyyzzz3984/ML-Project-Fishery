@@ -1,6 +1,6 @@
 import csv
 
-target_csv_filepath = 'result_standard.csv'
+target_csv_filepath = 'result.csv'
 save_csv_filepath = 'result_revised.csv'
 
 writer = csv.writer(open(save_csv_filepath, 'wb'))
@@ -26,8 +26,11 @@ for line in f:
     try:
         image_results = line.replace('\n', '').split(',')
         image_name = image_results[0]
+        image_name = image_name.replace('+AF8-', '_')
+        print image_name
         image_results = image_results[1: len(image_results)]
-        image_results = [float(i) for i in image_results]
+        image_results = [float(i.replace('+AC0', '')) for i in image_results]
+
         if image_results[4] > 0.3:
             image_results = [0.03, 0.03, 0.03, 0.03, 0.95, 0.03, 0.03, 0.03]
         if image_results[0] > 0.3:

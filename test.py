@@ -7,10 +7,10 @@ for line in f:
     name = line_parts[0]
 
     try:
-        lag_prob = float(line_parts[1])
+        lag_prob = float(line_parts[8])
 
         if lag_prob > 0.5:
-            os.system('cp ../find\ test\ fish/'+name.replace('.jpg', '') + '/' + name + ' /home/xyh3984/')
+            os.system('cp ../test\ dataset/' + name + ' /home/xyh3984/')
 
     except:
         pass

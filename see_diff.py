@@ -3,7 +3,7 @@ import numpy
 import os
 
 standard_file = 'result_standard.csv'
-test_file = 'result.csv'
+test_file = 'result_revised.csv'
 
 all_types = ['ALB', 'BET', 'DOL', 'LAG', 'NoF', 'OTHER', 'SHARK', 'YFT']
 

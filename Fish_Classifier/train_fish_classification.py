@@ -32,10 +32,10 @@ def max_pool_3x3_reduce(x):
 
 #########loading data##########
 target_wnd_size = [220, 220]
-file_len = 235
+file_len = 286
 
 
-data_dir = '../../array train dataset/fish types/rotated_%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
+data_dir = '../../array train dataset/fish types/whole_%dx%d/' % (target_wnd_size[0], target_wnd_size[1])
 
 
 
@@ -90,7 +90,7 @@ data_dir = '../../array train dataset/fish types/rotated_%dx%d/' % (target_wnd_s
 ##################
 wnd_size = [220, 220]
 x = tf.placeholder("float", shape=[None, wnd_size[0], wnd_size[1], 3])
-y_ = tf.placeholder("float", shape=[None, 7])
+y_ = tf.placeholder("float", shape=[None, 8])
 x_image = x
 
 ######convolution layers
@@ -163,8 +163,8 @@ keep_prob = tf.placeholder("float")
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob) # kill some neuron
 
 # Readout Layer
-W_fc2 = weight_variable([128, 7])
-b_fc2 = bias_variable([7])
+W_fc2 = weight_variable([128, 8])
+b_fc2 = bias_variable([8])
 
 y_conv=tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 
@@ -240,7 +240,7 @@ while True:
     y_data_batch = y_data[batch_i]
     #
     x_data_batch = x_data_batch.reshape(1, target_wnd_size[0], target_wnd_size[1], 3)
-    y_data_batch = y_data_batch.reshape(1, 7)
+    y_data_batch = y_data_batch.reshape(1, 8)
 
     batch_i += 1
 
@@ -278,7 +278,7 @@ while True:
 
         save_path = saver.save(sess, save_path= './onet_train.ckpt')
 
-        if avg_acc > 0.99:
+        if avg_acc > 0.9999:
             print 'Saving the last model and break'
             save_path = saver.save(sess, save_path='./onet_train.ckpt')
             break

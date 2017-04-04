@@ -32,7 +32,7 @@ def max_pool_3x3_reduce(x):
 def retrieve_prob_list(image_path):
     target_wnd_size = [220, 220]
     x = tf.placeholder("float", shape=[None, target_wnd_size[0], target_wnd_size[1], 3])
-    y_ = tf.placeholder("float", shape=[None, 7])
+    y_ = tf.placeholder("float", shape=[None, 8])
     x_image = x
 
     ######convolution layers
@@ -103,8 +103,8 @@ def retrieve_prob_list(image_path):
     h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)  # kill some neuron
 
     # Readout Layer
-    W_fc2 = weight_variable([128, 7])
-    b_fc2 = bias_variable([7])
+    W_fc2 = weight_variable([128, 8])
+    b_fc2 = bias_variable([8])
 
     y_conv = tf.nn.softmax(tf.matmul(h_fc1, W_fc2) + b_fc2)
 

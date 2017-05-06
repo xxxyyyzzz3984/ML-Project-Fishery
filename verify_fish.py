@@ -16,7 +16,7 @@ writer = csv.writer(open(csv_filename, 'wb'))
 
 writer.writerow(['image', 'ALB'	, 'BET', 'DOL', 'LAG', 'NoF', 'OTHER', 'SHARK', 'YFT'])
 
-dataset_dir = '../find test fish/'
+dataset_dir = 'test dataset/'
 
 saved_images_paths = [x[0] for x in os.walk(dataset_dir)]
 saved_images_paths = saved_images_paths[1:len(saved_images_paths)]

@@ -5,7 +5,7 @@ import csv
 import numpy
 
 
-dataset_dir = '../test dataset/'
+dataset_dir = 'test dataset/'
 save_csv_path = 'result.csv'
 already_pics = []
 count = 0
@@ -56,7 +56,7 @@ for pic in all_pics:
     count += 1
 
     print 'Process %d pic with name ' %(count) + pic
-    print fish_kinds[numpy.argmax(fish_probs)] + ' fish'
+    print 'This is a ' + fish_kinds[numpy.argmax(fish_probs)] + ' fish'
 
     print
 
